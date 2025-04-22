@@ -1,0 +1,175 @@
+import React, { useState } from 'react';
+import { CategoryGroup, StoredCategories } from '../types';
+import { Plus, X, Pencil, Save, Trash2 } from 'lucide-react';
+
+interface CategoryManagerProps {
+  storedCategories: StoredCategories;
+  onUpdateCategories: (categories: StoredCategories) => void;
+  onClose: () => void;
+}
+
+export const CategoryManager: React.FC<CategoryManagerProps> = ({
+  storedCategories,
+  onUpdateCategories,
+  onClose,
+}) => {
+  const [editingCategory, setEditingCategory] = useState<{
+    type: 'work' | 'personal';
+    index: number;
+    value: string;
+  } | null>(null);
+  const [newCategory, setNewCategory] = useState('');
+  const [selectedType, setSelectedType] = useState<'work' | 'personal'>('work');
+
+  const handleAddCategory = () => {
+    if (!newCategory.trim()) return;
+
+    const updatedCategories = { ...storedCategories };
+    updatedCategories.categories = {
+      ...updatedCategories.categories,
+      [selectedType]: [...updatedCategories.categories[selectedType], newCategory],
+    };
+
+    onUpdateCategories(updatedCategories);
+    setNewCategory('');
+  };
+
+  const handleDeleteCategory = (type: 'work' | 'personal', index: number) => {
+    const updatedCategories = { ...storedCategories };
+    updatedCategories.categories[type] = updatedCategories.categories[type].filter(
+      (_, i) => i !== index
+    );
+    onUpdateCategories(updatedCategories);
+  };
+
+  const handleStartEdit = (type: 'work' | 'personal', index: number, value: string) => {
+    setEditingCategory({ type, index, value });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingCategory || !editingCategory.value.trim()) return;
+
+    const updatedCategories = { ...storedCategories };
+    updatedCategories.categories[editingCategory.type] = updatedCategories.categories[
+      editingCategory.type
+    ].map((item, index) => (index === editingCategory.index ? editingCategory.value : item));
+
+    onUpdateCategories(updatedCategories);
+    setEditingCategory(null);
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  const renderCategoryList = (
+    type: 'work' | 'personal',
+    items: string[]
+  ) => (
+    <div className="space-y-2">
+      {items.map((item, index) => (
+        <div
+          key={`${type}-${index}`}
+          className="flex items-center justify-between bg-gray-50 p-2 rounded"
+        >
+          {editingCategory?.type === type && editingCategory?.index === index ? (
+            <input
+              type="text"
+              value={editingCategory.value}
+              onChange={(e) =>
+                setEditingCategory({ ...editingCategory, value: e.target.value })
+              }
+              className="flex-1 px-2 py-1 border rounded mr-2"
+              autoFocus
+            />
+          ) : (
+            <span className="flex-1">{item}</span>
+          )}
+          <div className="flex gap-2">
+            {editingCategory?.type === type && editingCategory?.index === index ? (
+              <button
+                onClick={handleSaveEdit}
+                className="p-1 text-green-600 hover:text-green-700"
+              >
+                <Save size={16} />
+              </button>
+            ) : (
+              <button
+                onClick={() => handleStartEdit(type, index, item)}
+                className="p-1 text-blue-600 hover:text-blue-700"
+              >
+                <Pencil size={16} />
+              </button>
+            )}
+            <button
+              onClick={() => handleDeleteCategory(type, index)}
+              className="p-1 text-red-600 hover:text-red-700"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={handleClick}>
+      <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Manage Categories</h2>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-100 rounded-full"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-6">
+          <div>
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="New category name"
+                className="flex-1 px-3 py-2 border rounded-md"
+              />
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value as 'work' | 'personal')}
+                className="px-3 py-2 border rounded-md"
+              >
+                <option value="work">Work</option>
+                <option value="personal">Personal</option>
+              </select>
+              <button
+                onClick={handleAddCategory}
+                disabled={!newCategory.trim()}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors disabled:bg-gray-300"
+              >
+                <Plus size={20} />
+                Add
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium mb-3">Work Categories</h3>
+              {renderCategoryList('work', storedCategories.categories.work)}
+            </div>
+
+            <div>
+              <h3 className="text-lg font-medium mb-3">Personal Categories</h3>
+              {renderCategoryList('personal', storedCategories.categories.personal)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
