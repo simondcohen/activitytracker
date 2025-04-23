@@ -208,7 +208,7 @@ export default function App() {
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-2xl mx-auto px-4">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Activity Timer</h1>
+          <h1 className="text-3xl font-bold">Activity Tracker</h1>
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setShowCategoryManager(true)}

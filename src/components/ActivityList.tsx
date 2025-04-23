@@ -28,10 +28,18 @@ export const ActivityList: React.FC<ActivityListProps> = ({
 
   const handleEdit = (activity: Activity) => {
     setEditingId(activity.id);
+    
+    // Extract date and format time separately
+    const startDate = new Date(activity.startTime);
+    const startDateStr = startDate.toISOString().split('T')[0];
+    
     setEditForm({
       ...activity,
-      startTime: formatForDateTimeInput(activity.startTime),
-      endTime: activity.endTime ? formatForDateTimeInput(activity.endTime) : formatForDateTimeInput(new Date().toISOString())
+      date: startDateStr,
+      startTime: formatForDateTimeInput(activity.startTime).split('T')[1],
+      endTime: activity.endTime 
+        ? formatForDateTimeInput(activity.endTime).split('T')[1] 
+        : formatForDateTimeInput(new Date().toISOString()).split('T')[1]
     });
   };
 
@@ -39,8 +47,12 @@ export const ActivityList: React.FC<ActivityListProps> = ({
     if (!editForm) return;
 
     try {
-      const startTime = parseFromDateTimeInput(editForm.startTime);
-      const endTime = parseFromDateTimeInput(editForm.endTime || new Date().toISOString());
+      // Combine date with start and end times
+      const startDateTime = `${editForm.date}T${editForm.startTime}`;
+      const endDateTime = `${editForm.date}T${editForm.endTime}`;
+      
+      const startTime = parseFromDateTimeInput(startDateTime);
+      const endTime = parseFromDateTimeInput(endDateTime);
       const duration = calculateDuration(startTime, endTime);
 
       if (duration < 0) {
@@ -179,13 +191,25 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                     </div>
                   </div>
 
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      value={editForm.date}
+                      onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Start Time
                       </label>
                       <input
-                        type="datetime-local"
+                        type="time"
                         value={editForm.startTime}
                         onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}
                         className="w-full px-3 py-2 border rounded-md"
@@ -196,7 +220,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                         End Time
                       </label>
                       <input
-                        type="datetime-local"
+                        type="time"
                         value={editForm.endTime}
                         onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
                         className="w-full px-3 py-2 border rounded-md"
