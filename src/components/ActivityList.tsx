@@ -121,7 +121,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
           {dailyTotals.work > 0 && Object.entries(dailyTotals.categories).length > 0 && (
             <div className="mt-4">
               <h4 className="text-sm font-medium text-gray-700 mb-2">Work Categories</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2">
                 {Object.entries(dailyTotals.categories)
                   .filter(([_, duration]) => duration > 0)
                   .map(([category, duration]) => (
@@ -136,7 +136,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
           )}
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 400px)' }}>
           {sortedActivities.map((activity) => (
             <div
               key={activity.id}

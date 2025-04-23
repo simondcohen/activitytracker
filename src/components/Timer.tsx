@@ -178,7 +178,7 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
         {formatTime(seconds)}
       </div>
       
-      <div className="flex gap-3 justify-center mb-4">
+      <div className="flex flex-wrap gap-2 justify-center mb-4">
         <button
           onClick={handleStartStop}
           className={`flex items-center gap-2 px-4 py-2 ${
