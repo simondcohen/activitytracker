@@ -6,7 +6,8 @@ import {
   getCategoryColor, 
   formatForDateTimeInput,
   parseFromDateTimeInput,
-  calculateDuration
+  calculateDuration,
+  fromLocalISOString
 } from '../utils';
 import { Pencil, Save, Trash2, X } from 'lucide-react';
 
@@ -29,17 +30,32 @@ export const ActivityList: React.FC<ActivityListProps> = ({
   const handleEdit = (activity: Activity) => {
     setEditingId(activity.id);
     
-    // Extract date and format time separately
-    const startDate = new Date(activity.startTime);
-    const startDateStr = startDate.toISOString().split('T')[0];
+    // Format the date and times properly for the form
+    const startDate = fromLocalISOString(activity.startTime);
+    const dateStr = startDate.toISOString().split('T')[0];
+    
+    const startHours = startDate.getHours().toString().padStart(2, '0');
+    const startMinutes = startDate.getMinutes().toString().padStart(2, '0');
+    const startTimeStr = `${startHours}:${startMinutes}`;
+    
+    let endTimeStr = '';
+    if (activity.endTime) {
+      const endDate = fromLocalISOString(activity.endTime);
+      const endHours = endDate.getHours().toString().padStart(2, '0');
+      const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
+      endTimeStr = `${endHours}:${endMinutes}`;
+    } else {
+      const now = new Date();
+      const endHours = now.getHours().toString().padStart(2, '0');
+      const endMinutes = now.getMinutes().toString().padStart(2, '0');
+      endTimeStr = `${endHours}:${endMinutes}`;
+    }
     
     setEditForm({
       ...activity,
-      date: startDateStr,
-      startTime: formatForDateTimeInput(activity.startTime).split('T')[1],
-      endTime: activity.endTime 
-        ? formatForDateTimeInput(activity.endTime).split('T')[1] 
-        : formatForDateTimeInput(new Date().toISOString()).split('T')[1]
+      date: dateStr,
+      startTime: startTimeStr,
+      endTime: endTimeStr
     });
   };
 
@@ -47,23 +63,29 @@ export const ActivityList: React.FC<ActivityListProps> = ({
     if (!editForm) return;
 
     try {
-      // Combine date with start and end times
-      const startDateTime = `${editForm.date}T${editForm.startTime}`;
-      const endDateTime = `${editForm.date}T${editForm.endTime}`;
+      // Create proper date objects from the form data
+      const startDate = new Date(editForm.date);
+      const [startHours, startMinutes] = editForm.startTime.split(':').map(Number);
+      startDate.setHours(startHours, startMinutes, 0, 0);
       
-      const startTime = parseFromDateTimeInput(startDateTime);
-      const endTime = parseFromDateTimeInput(endDateTime);
-      const duration = calculateDuration(startTime, endTime);
-
-      if (duration < 0) {
-        alert('End time cannot be before start time');
-        return;
+      const endDate = new Date(editForm.date);
+      const [endHours, endMinutes] = editForm.endTime.split(':').map(Number);
+      endDate.setHours(endHours, endMinutes, 0, 0);
+      
+      // If end time is earlier than start time, assume it's the next day
+      if (endDate < startDate) {
+        endDate.setDate(endDate.getDate() + 1);
       }
+      
+      const startTimeISO = startDate.toISOString();
+      const endTimeISO = endDate.toISOString();
+      const duration = calculateDuration(startTimeISO, endTimeISO);
 
-      const updatedActivity = {
+      const updatedActivity: Activity = {
         ...editForm,
-        startTime,
-        endTime,
+        date: editForm.date,  // Keep the original date string for the day
+        startTime: startTimeISO,
+        endTime: endTimeISO,
         duration
       };
 

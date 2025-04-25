@@ -34,38 +34,41 @@ export const ManualActivityForm: React.FC<ManualActivityFormProps> = ({
       return;
     }
 
-    const [startHours, startMinutes] = startTime.split(':').map(Number);
-    const [endHours, endMinutes] = endTime.split(':').map(Number);
+    try {
+      const [startHours, startMinutes] = startTime.split(':').map(Number);
+      const [endHours, endMinutes] = endTime.split(':').map(Number);
 
-    const startDateTime = new Date(date);
-    startDateTime.setHours(startHours, startMinutes, 0, 0);
+      const startDateTime = new Date(date);
+      startDateTime.setHours(startHours, startMinutes, 0, 0);
 
-    const endDateTime = new Date(date);
-    endDateTime.setHours(endHours, endMinutes, 0, 0);
+      const endDateTime = new Date(date);
+      endDateTime.setHours(endHours, endMinutes, 0, 0);
 
-    // Handle case where end time is on the next day
-    if (endDateTime < startDateTime) {
-      endDateTime.setDate(endDateTime.getDate() + 1);
+      // Handle case where end time is on the next day
+      if (endDateTime < startDateTime) {
+        endDateTime.setDate(endDateTime.getDate() + 1);
+      }
+
+      const durationInSeconds = Math.max(0, (endDateTime.getTime() - startDateTime.getTime()) / 1000);
+
+      // Use the date from the start time for consistency
+      const activityDate = startDateTime.toISOString().split('T')[0];
+
+      const newActivity: Activity = {
+        id: crypto.randomUUID(),
+        category: category === 'Other' ? customCategory || 'Other' : category,
+        date: activityDate,
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
+        duration: durationInSeconds,
+        notes,
+      };
+
+      onAdd(newActivity);
+    } catch (error) {
+      console.error('Error creating activity:', error);
+      alert('Error creating activity. Please check the time format.');
     }
-
-    const durationInSeconds = (endDateTime.getTime() - startDateTime.getTime()) / 1000;
-
-    if (durationInSeconds < 0) {
-      alert('End time must be after start time');
-      return;
-    }
-
-    const newActivity: Activity = {
-      id: crypto.randomUUID(),
-      category: category === 'Other' ? customCategory || 'Other' : category,
-      date: date,
-      startTime: toLocalISOString(startDateTime),
-      endTime: toLocalISOString(endDateTime),
-      duration: durationInSeconds,
-      notes,
-    };
-
-    onAdd(newActivity);
   };
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {

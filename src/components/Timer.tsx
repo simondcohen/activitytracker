@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, Save, Square, Trash2 } from 'lucide-react';
-import { formatTime, getTodayDate, toLocalISOString } from '../utils';
+import { formatTime, getTodayDate } from '../utils';
 
 interface TimerProps {
   onSave: (duration: number, date: string, startTime: string, endTime: string) => void;
@@ -113,7 +113,6 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
   const handleClear = () => {
     setIsRunning(false);
     setSeconds(0);
-    const now = new Date();
     setStartDate(getTodayDate());
     setStartTime(getCurrentTimeString());
     localStorage.removeItem('timerState');
@@ -132,8 +131,8 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
     onSave(
       seconds,
       startDate,
-      toLocalISOString(startDateTime),
-      toLocalISOString(endDateTime)
+      startDateTime.toISOString(),
+      endDateTime.toISOString()
     );
     
     setSeconds(0);
@@ -151,8 +150,6 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
       const start = new Date(`${startDate}T${timeValue}`);
       
       if (start > now) {
-        const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
         setStartDate(getTodayDate());
       }
       

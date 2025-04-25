@@ -30,12 +30,10 @@ export const formatTime = (seconds: number, showSeconds: boolean = true): string
 
 // Convert a Date object to ISO string while preserving local timezone
 export const toLocalISOString = (date: Date): string => {
-  const offset = date.getTimezoneOffset();
-  const localDate = new Date(date.getTime() - (offset * 60 * 1000));
-  return localDate.toISOString().slice(0, 19);
+  return date.toISOString();
 };
 
-// Parse an ISO string to a local Date object
+// Parse an ISO string to a Date object
 export const fromLocalISOString = (iso: string): Date => {
   if (!iso) return new Date(); // Return current time if no date provided
   try {
@@ -59,8 +57,7 @@ export const getTodayDate = (): string => {
 
 // Get date string in YYYY-MM-DD format for any date
 export const getDateString = (date: Date): string => {
-  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60 * 1000));
-  return localDate.toISOString().split('T')[0];
+  return date.toISOString().split('T')[0];
 };
 
 // Format a date string for display in the UI
@@ -99,8 +96,7 @@ export const formatTimeRange = (startTime: string, endTime: string): string => {
 export const formatForDateTimeInput = (dateString: string): string => {
   try {
     const date = fromLocalISOString(dateString);
-    const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60 * 1000));
-    return localDate.toISOString().slice(0, 16);
+    return date.toISOString().slice(0, 16);
   } catch (error) {
     console.warn('Error formatting for datetime input:', error);
     return new Date().toISOString().slice(0, 16);
@@ -114,7 +110,7 @@ export const parseFromDateTimeInput = (inputValue: string): string => {
     if (isNaN(date.getTime())) {
       throw new Error('Invalid date input');
     }
-    return toLocalISOString(date);
+    return date.toISOString();
   } catch (error) {
     console.warn('Error parsing from datetime input:', error);
     throw error;
@@ -138,8 +134,7 @@ export const calculateDuration = (startTime: string, endTime: string): number =>
 export const filterByDate = (dateStr: string, targetDate: string): boolean => {
   try {
     const date = fromLocalISOString(dateStr);
-    const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60 * 1000));
-    const dateString = localDate.toISOString().split('T')[0];
+    const dateString = date.toISOString().split('T')[0];
     return dateString === targetDate;
   } catch (error) {
     console.warn('Error filtering by date:', error);

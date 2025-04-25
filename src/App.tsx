@@ -4,7 +4,7 @@ import { ActivityList } from './components/ActivityList';
 import { ManualActivityForm } from './components/ManualActivityForm';
 import { CategoryManager } from './components/CategoryManager';
 import { Activity, StoredCategories } from './types';
-import { loadStoredCategories, saveCategories, getTodayDate } from './utils';
+import { loadStoredCategories, saveCategories, getTodayDate, getDateString, filterByDate, fromLocalISOString } from './utils';
 import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 
 export default function App() {
@@ -26,14 +26,14 @@ export default function App() {
   const handlePreviousDay = () => {
     const date = new Date(selectedDate);
     date.setDate(date.getDate() - 1);
-    const newDate = date.toISOString().split('T')[0];
+    const newDate = getDateString(date);
     setSelectedDate(newDate);
   };
 
   const handleNextDay = () => {
     const date = new Date(selectedDate);
     date.setDate(date.getDate() + 1);
-    const newDate = date.toISOString().split('T')[0];
+    const newDate = getDateString(date);
     setSelectedDate(newDate);
   };
 
@@ -72,10 +72,13 @@ export default function App() {
       return;
     }
 
+    // Extract the consistent date from the start time
+    const activityDate = fromLocalISOString(startTime).toISOString().split('T')[0];
+
     const newActivity: Activity = {
       id: crypto.randomUUID(),
       category: selectedCategory === 'Other' ? customCategory || 'Other' : selectedCategory,
-      date,
+      date: activityDate,
       startTime,
       endTime,
       duration,
@@ -87,9 +90,17 @@ export default function App() {
   };
 
   const handleUpdateActivity = (updatedActivity: Activity) => {
+    // Extract the date from the start time to ensure date consistency
+    const activityDate = fromLocalISOString(updatedActivity.startTime).toISOString().split('T')[0];
+    
+    const finalUpdatedActivity = {
+      ...updatedActivity,
+      date: activityDate
+    };
+    
     setActivities(prev => 
       prev.map(activity => 
-        activity.id === updatedActivity.id ? updatedActivity : activity
+        activity.id === updatedActivity.id ? finalUpdatedActivity : activity
       )
     );
   };
@@ -202,7 +213,7 @@ export default function App() {
     }
   };
 
-  const filteredActivities = activities.filter(activity => activity.date === selectedDate);
+  const filteredActivities = activities.filter(activity => filterByDate(activity.startTime, selectedDate));
 
   return (
     <div className="min-h-screen bg-gray-100 py-8">
