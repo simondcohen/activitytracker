@@ -1,25 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, Save, Square, Trash2 } from 'lucide-react';
-import { formatTime, getTodayDate } from '../utils';
+import { formatTime } from '../utils';
+import { toISO, formatClock, toLocal, formatForDateTimeInput, parseFromDateTimeInput } from '../dateHelpers';
 
 interface TimerProps {
-  onSave: (duration: number, date: string, startTime: string, endTime: string) => void;
+  onSave: (duration: number, startTime: string, endTime: string) => void;
   selectedCategory: string | null;
 }
 
 interface TimerState {
   isRunning: boolean;
-  startDate: string;
-  startTime: string;
-  lastCheckpoint: string;
+  startTime: string; // ISO UTC string
+  lastCheckpoint: string; // ISO UTC string
   selectedCategory: string | null;
 }
 
 export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
-  const [startDate, setStartDate] = useState(getTodayDate());
-  const [startTime, setStartTime] = useState(getCurrentTimeString());
+  const [startTime, setStartTime] = useState(toISO(new Date()));
+  const [startTimeLocal, setStartTimeLocal] = useState(formatForDateTimeInput(toISO(new Date())));
   const [currentDate, setCurrentDate] = useState(new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -34,11 +34,11 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
       const timerState: TimerState = JSON.parse(savedTimer);
       if (timerState.isRunning) {
         setIsRunning(true);
-        setStartDate(timerState.startDate);
         setStartTime(timerState.startTime);
+        setStartTimeLocal(formatForDateTimeInput(timerState.startTime));
         
         const now = new Date();
-        const start = new Date(`${timerState.startDate}T${timerState.startTime}`);
+        const start = new Date(timerState.startTime);
         
         // Ensure we have valid dates before calculating difference
         if (!isNaN(start.getTime()) && !isNaN(now.getTime())) {
@@ -55,7 +55,6 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
     if (isRunning) {
       const timerState: TimerState = {
         isRunning,
-        startDate,
         startTime,
         lastCheckpoint: new Date().toISOString(),
         selectedCategory
@@ -64,7 +63,7 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
     } else {
       localStorage.removeItem('timerState');
     }
-  }, [isRunning, startDate, startTime, selectedCategory]);
+  }, [isRunning, startTime, selectedCategory]);
 
   useEffect(() => {
     let interval: number | undefined;
@@ -72,7 +71,7 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
     if (isRunning) {
       interval = window.setInterval(() => {
         const now = new Date();
-        const start = new Date(`${startDate}T${startTime}`);
+        const start = new Date(startTime);
         
         // Ensure we have valid dates before calculating difference
         if (!isNaN(start.getTime()) && !isNaN(now.getTime())) {
@@ -86,7 +85,7 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, startDate, startTime]);
+  }, [isRunning, startTime]);
 
   const handleStartStop = () => {
     if (!selectedCategory) {
@@ -98,12 +97,13 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
       // Only update start time if seconds is 0 (fresh start)
       if (seconds === 0) {
         const now = new Date();
-        const start = new Date(`${startDate}T${startTime}`);
+        const start = new Date(startTime);
         
         // If date is invalid, use current date and time
         if (isNaN(start.getTime())) {
-          setStartDate(getTodayDate());
-          setStartTime(getCurrentTimeString());
+          const nowISO = toISO(now);
+          setStartTime(nowISO);
+          setStartTimeLocal(formatForDateTimeInput(nowISO));
           setSeconds(0);
           setIsRunning(true);
           return;
@@ -111,8 +111,9 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
         
         // If selected start time is in the future, reset to current time
         if (start > now) {
-          setStartDate(getTodayDate());
-          setStartTime(getCurrentTimeString());
+          const nowISO = toISO(now);
+          setStartTime(nowISO);
+          setStartTimeLocal(formatForDateTimeInput(nowISO));
         }
         
         // Calculate initial seconds if start time is in the past
@@ -138,8 +139,9 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
     
     setIsRunning(false);
     setSeconds(0);
-    setStartDate(getTodayDate());
-    setStartTime(getCurrentTimeString());
+    const nowISO = toISO(new Date());
+    setStartTime(nowISO);
+    setStartTimeLocal(formatForDateTimeInput(nowISO));
     localStorage.removeItem('timerState');
   };
 
@@ -150,133 +152,140 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
     }
     
     setIsRunning(false);
-    const startDateTime = new Date(`${startDate}T${startTime}`);
-    const endDateTime = new Date();
+    const endTimeISO = toISO(new Date());
     
     onSave(
       seconds,
-      startDate,
-      startDateTime.toISOString(),
-      endDateTime.toISOString()
+      startTime,
+      endTimeISO
     );
     
     setSeconds(0);
-    setStartDate(getTodayDate());
-    setStartTime(getCurrentTimeString());
+    const nowISO = toISO(new Date());
+    setStartTime(nowISO);
+    setStartTimeLocal(formatForDateTimeInput(nowISO));
     localStorage.removeItem('timerState');
   };
 
   const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const timeValue = e.target.value;
-    setStartTime(timeValue);
+    const localDateTimeStr = e.target.value;
+    setStartTimeLocal(localDateTimeStr);
     
-    if (!isRunning) {
-      const now = new Date();
-      const start = new Date(`${startDate}T${timeValue}`);
+    try {
+      // Convert from local datetime input to ISO UTC
+      const timeISO = parseFromDateTimeInput(localDateTimeStr);
+      setStartTime(timeISO);
       
-      // If date is invalid, use current date
-      if (isNaN(start.getTime())) {
-        setStartDate(getTodayDate());
-        setStartTime(getCurrentTimeString());
-        return;
+      if (!isRunning) {
+        const now = new Date();
+        const start = new Date(timeISO);
+        
+        // If date is invalid, use current date
+        if (isNaN(start.getTime())) {
+          const nowISO = toISO(new Date());
+          setStartTime(nowISO);
+          setStartTimeLocal(formatForDateTimeInput(nowISO));
+          return;
+        }
+        
+        // If selected start time is in the future, reset to current time
+        if (start > now) {
+          const nowISO = toISO(new Date());
+          setStartTime(nowISO);
+          setStartTimeLocal(formatForDateTimeInput(nowISO));
+          return;
+        }
+        
+        const diffInSeconds = Math.floor((now.getTime() - start.getTime()) / 1000);
+        setSeconds(Math.max(0, diffInSeconds));
       }
-      
-      // If selected start time is in the future, reset to current date
-      if (start > now) {
-        setStartDate(getTodayDate());
-      }
-      
-      const diffInSeconds = Math.floor((now.getTime() - start.getTime()) / 1000);
-      setSeconds(Math.max(0, diffInSeconds));
+    } catch (error) {
+      console.error('Invalid date time input:', error);
     }
   };
 
-  function getCurrentTimeString() {
-    try {
-      const now = new Date();
-      if (isNaN(now.getTime())) {
-        console.warn('Invalid date in getCurrentTimeString');
-        return '00:00';
-      }
-      const hours = now.getHours().toString().padStart(2, '0');
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      return `${hours}:${minutes}`;
-    } catch (error) {
-      console.error('Error in getCurrentTimeString:', error);
-      return '00:00';
-    }
-  }
-
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <div className="text-center mb-4 text-gray-600">
-        {currentDate}
-      </div>
-      
-      <div className="text-6xl text-center mb-6 tracking-wider font-mono">
-        {formatTime(seconds)}
-      </div>
-      
-      <div className="flex flex-wrap gap-2 justify-center mb-4">
-        <button
-          onClick={handleStartStop}
-          className={`flex items-center gap-2 px-4 py-2 ${
-            selectedCategory 
-              ? 'bg-blue-500 hover:bg-blue-600' 
-              : 'bg-gray-400 cursor-not-allowed'
-          } text-white rounded transition-colors`}
-          disabled={!selectedCategory}
-          title={!selectedCategory ? 'Please select a category first' : ''}
-        >
-          {isRunning ? <Pause size={20} /> : <Play size={20} />}
-          {isRunning ? 'Pause' : 'Start'}
-        </button>
-        
-        <button
-          onClick={handleStop}
-          className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-          disabled={!isRunning}
-        >
-          <Square size={20} />
-          Stop
-        </button>
-        
-        <button
-          onClick={handleClear}
-          className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-          disabled={seconds === 0}
-        >
-          <Trash2 size={20} />
-          Clear
-        </button>
-        
-        <button
-          onClick={handleSave}
-          className={`flex items-center gap-2 px-4 py-2 ${
-            selectedCategory && seconds > 0
-              ? 'bg-green-500 hover:bg-green-600' 
-              : 'bg-gray-400 cursor-not-allowed'
-          } text-white rounded transition-colors`}
-          disabled={!selectedCategory || seconds === 0}
-          title={!selectedCategory ? 'Please select a category first' : ''}
-        >
-          <Save size={20} />
-          Save
-        </button>
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="text-center mb-4">
+        <div className="text-sm text-gray-500">{currentDate}</div>
+        <div className="text-4xl font-mono font-semibold mt-2">
+          {formatTime(seconds)}
+        </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Start Time
         </label>
         <input
-          type="time"
-          value={startTime}
+          type="datetime-local"
+          value={startTimeLocal}
           onChange={handleStartTimeChange}
-          className="w-full px-3 py-2 border rounded-md"
-          step="60"
+          disabled={isRunning}
+          className="w-full border rounded-md px-3 py-2"
         />
       </div>
+
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={handleStartStop}
+          disabled={!selectedCategory}
+          className={`flex-1 py-2 px-4 rounded-md flex items-center justify-center gap-2 ${
+            isRunning 
+              ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+              : 'bg-green-500 hover:bg-green-600 text-white'
+          } ${!selectedCategory ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          {isRunning ? (
+            <>
+              <Pause size={16} />
+              Pause
+            </>
+          ) : (
+            <>
+              <Play size={16} />
+              Start
+            </>
+          )}
+        </button>
+
+        {isRunning ? (
+          <button
+            onClick={handleStop}
+            className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-md flex items-center justify-center gap-2"
+          >
+            <Square size={16} />
+            Stop
+          </button>
+        ) : seconds > 0 ? (
+          <button
+            onClick={handleSave}
+            disabled={!selectedCategory || seconds === 0}
+            className={`flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md flex items-center justify-center gap-2 ${
+              (!selectedCategory || seconds === 0) ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+          >
+            <Save size={16} />
+            Save
+          </button>
+        ) : null}
+
+        {!isRunning && seconds > 0 && (
+          <button
+            onClick={handleClear}
+            className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-md flex items-center justify-center gap-2"
+          >
+            <Trash2 size={16} />
+            Clear
+          </button>
+        )}
+      </div>
+
+      {!selectedCategory && (
+        <div className="text-sm text-red-500 mb-2">
+          Please select a category to start or save the timer
+        </div>
+      )}
     </div>
   );
 };

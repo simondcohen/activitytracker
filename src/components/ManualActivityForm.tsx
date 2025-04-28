@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Activity, StoredCategories } from '../types';
 import { Plus, X } from 'lucide-react';
-import { toLocalISOString, getTodayDate } from '../utils';
+import { formatForDateTimeInput, parseFromDateTimeInput, calculateDuration, getTodayISO } from '../dateHelpers';
 
 interface ManualActivityFormProps {
   onAdd: (activity: Activity) => void;
@@ -16,10 +16,17 @@ export const ManualActivityForm: React.FC<ManualActivityFormProps> = ({
 }) => {
   const [category, setCategory] = useState<string | null>(null);
   const [customCategory, setCustomCategory] = useState('');
-  const [date, setDate] = useState(getTodayDate());
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const [startDateTime, setStartDateTime] = useState('');
+  const [endDateTime, setEndDateTime] = useState('');
   const [notes, setNotes] = useState('');
+
+  // Initialize with current local date/time
+  React.useEffect(() => {
+    const now = new Date();
+    const localDateTimeStr = formatForDateTimeInput(getTodayISO());
+    setStartDateTime(localDateTimeStr);
+    setEndDateTime(localDateTimeStr);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,37 +36,29 @@ export const ManualActivityForm: React.FC<ManualActivityFormProps> = ({
       return;
     }
 
-    if (!startTime || !endTime) {
+    if (!startDateTime || !endDateTime) {
       alert('Please enter both start and end times');
       return;
     }
 
     try {
-      const [startHours, startMinutes] = startTime.split(':').map(Number);
-      const [endHours, endMinutes] = endTime.split(':').map(Number);
-
-      const startDateTime = new Date(date);
-      startDateTime.setHours(startHours, startMinutes, 0, 0);
-
-      const endDateTime = new Date(date);
-      endDateTime.setHours(endHours, endMinutes, 0, 0);
-
-      // Handle case where end time is on the next day
-      if (endDateTime < startDateTime) {
-        endDateTime.setDate(endDateTime.getDate() + 1);
+      // Convert local datetime strings to ISO UTC strings
+      const startTimeISO = parseFromDateTimeInput(startDateTime);
+      const endTimeISO = parseFromDateTimeInput(endDateTime);
+      
+      // Calculate duration
+      const durationInSeconds = calculateDuration(startTimeISO, endTimeISO);
+      
+      if (durationInSeconds <= 0) {
+        alert('End time must be after start time');
+        return;
       }
-
-      const durationInSeconds = Math.max(0, (endDateTime.getTime() - startDateTime.getTime()) / 1000);
-
-      // Use the date from the start time for consistency
-      const activityDate = startDateTime.toISOString().split('T')[0];
 
       const newActivity: Activity = {
         id: crypto.randomUUID(),
         category: category === 'Other' ? customCategory || 'Other' : category,
-        date: activityDate,
-        startTime: startDateTime.toISOString(),
-        endTime: endDateTime.toISOString(),
+        startTime: startTimeISO,
+        endTime: endTimeISO,
         duration: durationInSeconds,
         notes,
       };
@@ -88,28 +87,15 @@ export const ManualActivityForm: React.FC<ManualActivityFormProps> = ({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Date
-          </label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full px-3 py-2 border rounded-md"
-            required
-          />
-        </div>
-
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Start Time
             </label>
             <input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
+              type="datetime-local"
+              value={startDateTime}
+              onChange={(e) => setStartDateTime(e.target.value)}
               className="w-full px-3 py-2 border rounded-md"
               required
             />
@@ -119,9 +105,9 @@ export const ManualActivityForm: React.FC<ManualActivityFormProps> = ({
               End Time
             </label>
             <input
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
+              type="datetime-local"
+              value={endDateTime}
+              onChange={(e) => setEndDateTime(e.target.value)}
               className="w-full px-3 py-2 border rounded-md"
               required
             />
@@ -199,9 +185,9 @@ export const ManualActivityForm: React.FC<ManualActivityFormProps> = ({
 
         <button
           type="submit"
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors"
+          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 flex items-center justify-center gap-2"
         >
-          <Plus size={20} />
+          <Plus size={16} />
           Add Activity
         </button>
       </form>

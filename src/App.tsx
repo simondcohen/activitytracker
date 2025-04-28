@@ -4,8 +4,10 @@ import { ActivityList } from './components/ActivityList';
 import { ManualActivityForm } from './components/ManualActivityForm';
 import { CategoryManager } from './components/CategoryManager';
 import { Activity, StoredCategories } from './types';
-import { loadStoredCategories, saveCategories, getTodayDate, getDateString, filterByDate, fromLocalISOString } from './utils';
+import { loadStoredCategories, saveCategories } from './utils';
+import { toISO, formatClock, toLocal, isSameDay, getTodayISO } from './dateHelpers';
 import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { format, subDays, addDays, parseISO } from 'date-fns';
 
 export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
@@ -18,28 +20,16 @@ export default function App() {
   });
   const [customCategory, setCustomCategory] = useState('');
   const [currentNotes, setCurrentNotes] = useState('');
-  const [selectedDate, setSelectedDate] = useState(getTodayDate());
+  const [selectedDate, setSelectedDate] = useState(getTodayISO());
   const [showManualForm, setShowManualForm] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [storedCategories, setStoredCategories] = useState<StoredCategories>(loadStoredCategories());
   
   const handlePreviousDay = () => {
     try {
-      // Parse the date parts
-      const [year, month, day] = selectedDate.split('-').map(Number);
-      
-      // Create a new date (months are 0-indexed in JavaScript Date)
-      const date = new Date(year, month - 1, day);
-      
-      // Subtract one day
-      date.setDate(date.getDate() - 1);
-      
-      // Format back to YYYY-MM-DD
-      const newYear = date.getFullYear();
-      const newMonth = String(date.getMonth() + 1).padStart(2, '0');
-      const newDay = String(date.getDate()).padStart(2, '0');
-      
-      setSelectedDate(`${newYear}-${newMonth}-${newDay}`);
+      const date = parseISO(selectedDate);
+      const previousDay = subDays(date, 1);
+      setSelectedDate(toISO(previousDay));
     } catch (error) {
       console.error('Error navigating to previous day:', error);
     }
@@ -47,21 +37,9 @@ export default function App() {
 
   const handleNextDay = () => {
     try {
-      // Parse the date parts
-      const [year, month, day] = selectedDate.split('-').map(Number);
-      
-      // Create a new date (months are 0-indexed in JavaScript Date)
-      const date = new Date(year, month - 1, day);
-      
-      // Add one day
-      date.setDate(date.getDate() + 1);
-      
-      // Format back to YYYY-MM-DD
-      const newYear = date.getFullYear();
-      const newMonth = String(date.getMonth() + 1).padStart(2, '0');
-      const newDay = String(date.getDate()).padStart(2, '0');
-      
-      setSelectedDate(`${newYear}-${newMonth}-${newDay}`);
+      const date = parseISO(selectedDate);
+      const nextDay = addDays(date, 1);
+      setSelectedDate(toISO(nextDay));
     } catch (error) {
       console.error('Error navigating to next day:', error);
     }
@@ -96,19 +74,15 @@ export default function App() {
     saveCategories(newCategories);
   };
 
-  const handleSaveActivity = (duration: number, date: string, startTime: string, endTime: string) => {
+  const handleSaveActivity = (duration: number, startTime: string, endTime: string) => {
     if (!selectedCategory) {
       alert('Please select a category before saving');
       return;
     }
 
-    // Extract the consistent date from the start time
-    const activityDate = fromLocalISOString(startTime).toISOString().split('T')[0];
-
     const newActivity: Activity = {
       id: crypto.randomUUID(),
       category: selectedCategory === 'Other' ? customCategory || 'Other' : selectedCategory,
-      date: activityDate,
       startTime,
       endTime,
       duration,
@@ -120,17 +94,9 @@ export default function App() {
   };
 
   const handleUpdateActivity = (updatedActivity: Activity) => {
-    // Extract the date from the start time to ensure date consistency
-    const activityDate = fromLocalISOString(updatedActivity.startTime).toISOString().split('T')[0];
-    
-    const finalUpdatedActivity = {
-      ...updatedActivity,
-      date: activityDate
-    };
-    
     setActivities(prev => 
       prev.map(activity => 
-        activity.id === updatedActivity.id ? finalUpdatedActivity : activity
+        activity.id === updatedActivity.id ? updatedActivity : activity
       )
     );
   };
@@ -155,7 +121,8 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `activity-tracker-export-${getTodayDate()}.json`;
+    const formattedDate = format(new Date(), 'yyyy-MM-dd');
+    link.download = `activity-tracker-export-${formattedDate}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -170,7 +137,7 @@ export default function App() {
       setSelectedCategory(null);
       setCustomCategory('');
       setCurrentNotes('');
-      setSelectedDate(getTodayDate());
+      setSelectedDate(getTodayISO());
     }
   };
 
@@ -179,7 +146,7 @@ export default function App() {
     
     if (!data.activities || !Array.isArray(data.activities)) return false;
     for (const activity of data.activities) {
-      if (!activity.id || !activity.category || !activity.date || 
+      if (!activity.id || !activity.category || 
           !activity.startTime || !activity.endTime || 
           typeof activity.duration !== 'number') {
         console.error('Invalid activity:', activity);
@@ -243,70 +210,75 @@ export default function App() {
     }
   };
 
-  const filteredActivities = activities.filter(activity => filterByDate(activity.startTime, selectedDate));
+  const filteredActivities = activities.filter(activity => {
+    try {
+      return isSameDay(activity.startTime, selectedDate);
+    } catch (error) {
+      console.error('Error filtering activities by date:', error);
+      return false;
+    }
+  });
+
+  const displayDate = format(parseISO(selectedDate), 'EEEE, MMMM d, yyyy');
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Activity Tracker</h1>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setShowCategoryManager(true)}
-              className="p-1.5 text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
-              title="Manage Categories"
-            >
-              <Settings size={18} />
-            </button>
-            <button
-              onClick={handleExportData}
-              className="p-1.5 text-gray-700 hover:bg-gray-200 rounded-md transition-colors"
-              title="Export Data"
-            >
-              <Download size={18} />
-            </button>
-            <label className="p-1.5 text-gray-700 hover:bg-gray-200 rounded-md transition-colors cursor-pointer" title="Import Data">
-              <Upload size={18} />
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleImportData}
-                className="hidden"
-              />
-            </label>
-            <button
-              onClick={handleClearAllData}
-              className="p-1.5 text-gray-700 hover:bg-red-100 rounded-md transition-colors"
-              title="Clear All Data"
-            >
-              <Trash2 size={18} />
-            </button>
-          </div>
-        </div>
-        
-        {/* Two column layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left column: Timer and category selection */}
-          <div className="flex flex-col space-y-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-                Activity Category
-              </h2>
-              <div className="space-y-4">
+    <div className="min-h-screen bg-gray-100 p-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex flex-col gap-6">
+          <header className="bg-white p-4 rounded-lg shadow-md">
+            <div className="flex justify-between items-center mb-4">
+              <h1 className="text-xl font-bold">Activity Tracker</h1>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleExportData}
+                  className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600"
+                  title="Export Data"
+                >
+                  <Download size={18} />
+                </button>
+                <label className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 cursor-pointer" title="Import Data">
+                  <Upload size={18} />
+                  <input 
+                    type="file" 
+                    accept=".json" 
+                    className="hidden" 
+                    onChange={handleImportData}
+                  />
+                </label>
+                <button
+                  onClick={() => setShowCategoryManager(true)}
+                  className="p-2 bg-purple-500 text-white rounded-full hover:bg-purple-600"
+                  title="Manage Categories"
+                >
+                  <Settings size={18} />
+                </button>
+                <button
+                  onClick={handleClearAllData}
+                  className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                  title="Clear All Data"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Current Activity</label>
+              <div className="space-y-3">
                 <div>
                   <h3 className="text-sm font-medium text-gray-600 mb-2">Work Activities</h3>
                   <div className="flex flex-wrap gap-2">
-                    {storedCategories.categories.work.map((category) => (
+                    {storedCategories.categories.work.map((cat) => (
                       <button
-                        key={category}
-                        onClick={() => handleCategorySelect(category)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                          selectedCategory === category
+                        key={cat}
+                        onClick={() => handleCategorySelect(cat)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                          selectedCategory === cat
                             ? 'bg-green-500 text-white'
                             : 'bg-green-100 text-green-700 hover:bg-green-200'
                         }`}
                       >
-                        {category}
+                        {cat}
                       </button>
                     ))}
                   </div>
@@ -315,97 +287,98 @@ export default function App() {
                 <div>
                   <h3 className="text-sm font-medium text-gray-600 mb-2">Personal Activities</h3>
                   <div className="flex flex-wrap gap-2">
-                    {storedCategories.categories.personal.map((category) => (
+                    {storedCategories.categories.personal.map((cat) => (
                       <button
-                        key={category}
-                        onClick={() => handleCategorySelect(category)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                          selectedCategory === category
+                        key={cat}
+                        onClick={() => handleCategorySelect(cat)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                          selectedCategory === cat
                             ? 'bg-blue-500 text-white'
                             : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                         }`}
                       >
-                        {category}
+                        {cat}
                       </button>
                     ))}
                   </div>
                 </div>
-                
-                {selectedCategory === 'Other' && (
+              </div>
+              
+              {selectedCategory === 'Other' && (
+                <div className="mt-2">
                   <input
                     type="text"
+                    placeholder="Custom category name"
                     value={customCategory}
                     onChange={(e) => setCustomCategory(e.target.value)}
-                    placeholder="Enter custom category"
                     className="w-full px-3 py-2 border rounded-md"
                   />
-                )}
-              </div>
+                </div>
+              )}
             </div>
-
-            <Timer onSave={handleSaveActivity} selectedCategory={selectedCategory} />
             
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Session Notes
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Notes
               </label>
               <textarea
                 value={currentNotes}
                 onChange={(e) => setCurrentNotes(e.target.value)}
-                placeholder="Add notes for this session..."
-                className="w-full px-3 py-2 border rounded-md h-24 resize-none"
+                placeholder="Add notes for the current activity..."
+                className="w-full px-3 py-2 border rounded-md h-20 resize-none"
               />
             </div>
-          </div>
-
-          {/* Right column: Activity log */}
-          <div className="flex flex-col">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePreviousDay}
-                  className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
-                  title="Previous day"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="px-3 py-1.5 border rounded-md"
-                />
-                <button
-                  onClick={handleNextDay}
-                  className="p-1.5 hover:bg-gray-200 rounded-md transition-colors"
-                  title="Next day"
-                >
-                  <ChevronRight size={18} />
-                </button>
-              </div>
+            
+            <Timer
+              onSave={handleSaveActivity}
+              selectedCategory={selectedCategory}
+            />
+          </header>
+          
+          <div className="bg-white p-4 rounded-lg shadow-md">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Activity History</h2>
               <button
                 onClick={() => setShowManualForm(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors text-sm"
+                className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600"
               >
                 <Plus size={16} />
-                Add Activity
+                Add Manually
               </button>
             </div>
-
-            <div className="flex-grow overflow-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-              <ActivityList 
-                activities={filteredActivities}
-                onUpdate={handleUpdateActivity}
-                onDelete={handleDeleteActivity}
-                storedCategories={storedCategories}
-              />
+            
+            <div className="flex items-center justify-between mb-4 px-4 py-2 bg-gray-50 rounded-md">
+              <button
+                onClick={handlePreviousDay}
+                className="p-1 hover:bg-gray-200 rounded-full"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <h3 className="text-lg font-medium">{displayDate}</h3>
+              <button
+                onClick={handleNextDay}
+                className="p-1 hover:bg-gray-200 rounded-full"
+              >
+                <ChevronRight size={24} />
+              </button>
             </div>
+            
+            <ActivityList
+              activities={filteredActivities}
+              onUpdate={handleUpdateActivity}
+              onDelete={handleDeleteActivity}
+              storedCategories={storedCategories}
+            />
           </div>
         </div>
       </div>
-
+      
+      {/* Manual Activity Form Modal */}
       {showManualForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={handleModalClick}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10"
+          onClick={handleModalClick}
+        >
           <ManualActivityForm
             onAdd={handleAddManualActivity}
             onClose={() => setShowManualForm(false)}
@@ -413,13 +386,19 @@ export default function App() {
           />
         </div>
       )}
-
+      
+      {/* Category Manager Modal */}
       {showCategoryManager && (
-        <CategoryManager
-          storedCategories={storedCategories}
-          onUpdateCategories={handleUpdateCategories}
-          onClose={() => setShowCategoryManager(false)}
-        />
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10"
+          onClick={handleModalClick}
+        >
+          <CategoryManager
+            storedCategories={storedCategories}
+            onUpdateCategories={handleUpdateCategories}
+            onClose={() => setShowCategoryManager(false)}
+          />
+        </div>
       )}
     </div>
   );

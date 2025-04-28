@@ -1,9 +1,8 @@
 export interface Activity {
   id: string;
   category: string;
-  date: string; // YYYY-MM-DD format
-  startTime: string; // Now ISO string or just HH:mm format during edit
-  endTime: string; // Now ISO string or just HH:mm format during edit
+  startTime: string; // ISO-8601 string in UTC
+  endTime: string; // ISO-8601 string in UTC
   duration: number; // in seconds
   notes?: string;
 }

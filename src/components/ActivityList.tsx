@@ -2,13 +2,17 @@ import React, { useState } from 'react';
 import { Activity, StoredCategories } from '../types';
 import { 
   formatTime, 
-  formatTimeRange,
-  getCategoryColor, 
+  getCategoryColor
+} from '../utils';
+import { 
+  formatClock,
+  formatRange,
+  toLocal,
   formatForDateTimeInput,
   parseFromDateTimeInput,
   calculateDuration,
-  fromLocalISOString
-} from '../utils';
+  isSameDay
+} from '../dateHelpers';
 import { Pencil, Save, Trash2, X } from 'lucide-react';
 
 interface ActivityListProps {
@@ -25,37 +29,24 @@ export const ActivityList: React.FC<ActivityListProps> = ({
   storedCategories
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Activity | null>(null);
+  const [editForm, setEditForm] = useState<{
+    id: string;
+    category: string;
+    startDateTime: string;
+    endDateTime: string;
+    notes?: string;
+  } | null>(null);
 
   const handleEdit = (activity: Activity) => {
     setEditingId(activity.id);
     
-    // Format the date and times properly for the form
-    const startDate = fromLocalISOString(activity.startTime);
-    const dateStr = startDate.toISOString().split('T')[0];
-    
-    const startHours = startDate.getHours().toString().padStart(2, '0');
-    const startMinutes = startDate.getMinutes().toString().padStart(2, '0');
-    const startTimeStr = `${startHours}:${startMinutes}`;
-    
-    let endTimeStr = '';
-    if (activity.endTime) {
-      const endDate = fromLocalISOString(activity.endTime);
-      const endHours = endDate.getHours().toString().padStart(2, '0');
-      const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
-      endTimeStr = `${endHours}:${endMinutes}`;
-    } else {
-      const now = new Date();
-      const endHours = now.getHours().toString().padStart(2, '0');
-      const endMinutes = now.getMinutes().toString().padStart(2, '0');
-      endTimeStr = `${endHours}:${endMinutes}`;
-    }
-    
+    // Format ISO date strings to local datetime-local input format
     setEditForm({
-      ...activity,
-      date: dateStr,
-      startTime: startTimeStr,
-      endTime: endTimeStr
+      id: activity.id,
+      category: activity.category,
+      startDateTime: formatForDateTimeInput(activity.startTime),
+      endDateTime: formatForDateTimeInput(activity.endTime),
+      notes: activity.notes
     });
   };
 
@@ -63,30 +54,25 @@ export const ActivityList: React.FC<ActivityListProps> = ({
     if (!editForm) return;
 
     try {
-      // Create proper date objects from the form data
-      const startDate = new Date(editForm.date);
-      const [startHours, startMinutes] = editForm.startTime.split(':').map(Number);
-      startDate.setHours(startHours, startMinutes, 0, 0);
+      // Convert local datetime strings back to ISO strings in UTC
+      const startTimeISO = parseFromDateTimeInput(editForm.startDateTime);
+      const endTimeISO = parseFromDateTimeInput(editForm.endDateTime);
       
-      const endDate = new Date(editForm.date);
-      const [endHours, endMinutes] = editForm.endTime.split(':').map(Number);
-      endDate.setHours(endHours, endMinutes, 0, 0);
-      
-      // If end time is earlier than start time, assume it's the next day
-      if (endDate < startDate) {
-        endDate.setDate(endDate.getDate() + 1);
-      }
-      
-      const startTimeISO = startDate.toISOString();
-      const endTimeISO = endDate.toISOString();
+      // Calculate duration
       const duration = calculateDuration(startTimeISO, endTimeISO);
+      
+      if (duration <= 0) {
+        alert('End time must be after start time');
+        return;
+      }
 
       const updatedActivity: Activity = {
-        ...editForm,
-        date: editForm.date,  // Keep the original date string for the day
+        id: editForm.id,
+        category: editForm.category,
         startTime: startTimeISO,
         endTime: endTimeISO,
-        duration
+        duration,
+        notes: editForm.notes
       };
 
       onUpdate(updatedActivity);
@@ -103,14 +89,20 @@ export const ActivityList: React.FC<ActivityListProps> = ({
     setEditForm(null);
   };
 
-  // Calculate daily totals
-  const dailyTotals = activities.reduce((acc, activity) => {
-    const categoryType = storedCategories.categories.work.includes(activity.category) ? 'work' : 'personal';
-    acc[categoryType] = (acc[categoryType] || 0) + activity.duration;
+  // Calculate daily totals by grouping activities of the same day
+  const dailyActivities = activities.reduce((acc, activity) => {
+    // Group by day of the first activity's start time
+    const firstActivity = activities[0];
+    if (!firstActivity) return acc;
     
-    if (categoryType === 'work') {
-      acc.categories = acc.categories || {};
-      acc.categories[activity.category] = (acc.categories[activity.category] || 0) + activity.duration;
+    if (isSameDay(activity.startTime, firstActivity.startTime)) {
+      const categoryType = storedCategories.categories.work.includes(activity.category) ? 'work' : 'personal';
+      acc[categoryType] = (acc[categoryType] || 0) + activity.duration;
+      
+      if (categoryType === 'work') {
+        acc.categories = acc.categories || {};
+        acc.categories[activity.category] = (acc.categories[activity.category] || 0) + activity.duration;
+      }
     }
     
     return acc;
@@ -127,24 +119,24 @@ export const ActivityList: React.FC<ActivityListProps> = ({
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
           <h3 className="text-lg font-semibold mb-3">Daily Totals</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {dailyTotals.personal > 0 && (
+            {dailyActivities.personal > 0 && (
               <div className="bg-blue-50 p-3 rounded-md">
                 <div className="text-sm text-blue-700">Personal Activities</div>
-                <div className="text-lg font-mono">{formatTime(dailyTotals.personal, false)}</div>
+                <div className="text-lg font-mono">{formatTime(dailyActivities.personal, false)}</div>
               </div>
             )}
-            {dailyTotals.work > 0 && (
+            {dailyActivities.work > 0 && (
               <div className="bg-green-50 p-3 rounded-md">
                 <div className="text-sm text-green-700">Total Work</div>
-                <div className="text-lg font-mono">{formatTime(dailyTotals.work, false)}</div>
+                <div className="text-lg font-mono">{formatTime(dailyActivities.work, false)}</div>
               </div>
             )}
           </div>
-          {dailyTotals.work > 0 && Object.entries(dailyTotals.categories).length > 0 && (
+          {dailyActivities.work > 0 && Object.entries(dailyActivities.categories).length > 0 && (
             <div className="mt-4">
               <h4 className="text-sm font-medium text-gray-700 mb-2">Work Categories</h4>
               <div className="grid grid-cols-1 gap-2">
-                {Object.entries(dailyTotals.categories)
+                {Object.entries(dailyActivities.categories)
                   .filter(([_, duration]) => duration > 0)
                   .map(([category, duration]) => (
                     <div key={category} className="bg-white p-2 rounded border">
@@ -212,29 +204,18 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                       </div>
                     </div>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Date
-                    </label>
-                    <input
-                      type="date"
-                      value={editForm.date}
-                      onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md"
-                    />
-                  </div>
-
+                  
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Start Time
                       </label>
                       <input
-                        type="time"
-                        value={editForm.startTime}
-                        onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}
+                        type="datetime-local"
+                        value={editForm.startDateTime}
+                        onChange={(e) => setEditForm({ ...editForm, startDateTime: e.target.value })}
                         className="w-full px-3 py-2 border rounded-md"
+                        required
                       />
                     </div>
                     <div>
@@ -242,36 +223,39 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                         End Time
                       </label>
                       <input
-                        type="time"
-                        value={editForm.endTime}
-                        onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
+                        type="datetime-local"
+                        value={editForm.endDateTime}
+                        onChange={(e) => setEditForm({ ...editForm, endDateTime: e.target.value })}
                         className="w-full px-3 py-2 border rounded-md"
+                        required
                       />
                     </div>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Notes
                     </label>
                     <textarea
                       value={editForm.notes || ''}
                       onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md h-24 resize-none"
+                      className="w-full px-3 py-2 border rounded-md h-20"
                     />
                   </div>
-
-                  <div className="flex gap-2">
+                  
+                  <div className="flex space-x-2">
                     <button
+                      type="button"
                       onClick={handleSave}
-                      className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                      className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 flex items-center justify-center gap-2"
                     >
                       <Save size={16} />
                       Save
                     </button>
                     <button
+                      type="button"
                       onClick={handleCancel}
-                      className="flex items-center gap-1 px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
+                      className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 flex items-center justify-center gap-2"
                     >
                       <X size={16} />
                       Cancel
@@ -280,35 +264,41 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                 </div>
               ) : (
                 <div>
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="flex justify-between">
                     <div>
-                      <span className={`inline-block px-2 py-1 text-sm rounded bg-${getCategoryColor(activity.category, storedCategories.categories)}-100 text-${getCategoryColor(activity.category, storedCategories.categories)}-800`}>
+                      <span
+                        className={`inline-block px-2 py-1 rounded-md text-xs font-medium mb-2 ${
+                          getCategoryColor(activity.category, storedCategories.categories) === 'green'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}
+                      >
                         {activity.category}
                       </span>
-                      <div className="mt-2 text-sm text-gray-600">
-                        {formatTimeRange(activity.startTime, activity.endTime || new Date().toISOString())}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-lg font-mono">
+                      <h3 className="text-base font-medium">
+                        {formatRange(activity.startTime, activity.endTime)}
+                      </h3>
+                      <div className="text-xs text-gray-500 mt-1">
                         {formatTime(activity.duration, false)}
                       </div>
+                    </div>
+                    <div className="flex space-x-2">
                       <button
                         onClick={() => handleEdit(activity)}
-                        className="p-1 text-gray-500 hover:text-blue-500 transition-colors"
+                        className="p-1 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
                       >
                         <Pencil size={16} />
                       </button>
                       <button
                         onClick={() => onDelete(activity.id)}
-                        className="p-1 text-gray-500 hover:text-red-500 transition-colors"
+                        className="p-1 text-gray-500 hover:text-red-700 hover:bg-gray-100 rounded"
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
                   {activity.notes && (
-                    <div className="mt-2 text-gray-700 bg-gray-50 p-3 rounded">
+                    <div className="mt-2 text-sm text-gray-600 border-t pt-2">
                       {activity.notes}
                     </div>
                   )}
@@ -316,10 +306,6 @@ export const ActivityList: React.FC<ActivityListProps> = ({
               )}
             </div>
           ))}
-          
-          {activities.length === 0 && (
-            <p className="text-gray-500 text-center">No activities recorded for this date</p>
-          )}
         </div>
       </div>
     </div>
