@@ -24,17 +24,47 @@ export default function App() {
   const [storedCategories, setStoredCategories] = useState<StoredCategories>(loadStoredCategories());
   
   const handlePreviousDay = () => {
-    const date = new Date(selectedDate + 'T00:00:00Z');
-    date.setUTCDate(date.getUTCDate() - 1);
-    const newDate = getDateString(date);
-    setSelectedDate(newDate);
+    try {
+      // Parse the date parts
+      const [year, month, day] = selectedDate.split('-').map(Number);
+      
+      // Create a new date (months are 0-indexed in JavaScript Date)
+      const date = new Date(year, month - 1, day);
+      
+      // Subtract one day
+      date.setDate(date.getDate() - 1);
+      
+      // Format back to YYYY-MM-DD
+      const newYear = date.getFullYear();
+      const newMonth = String(date.getMonth() + 1).padStart(2, '0');
+      const newDay = String(date.getDate()).padStart(2, '0');
+      
+      setSelectedDate(`${newYear}-${newMonth}-${newDay}`);
+    } catch (error) {
+      console.error('Error navigating to previous day:', error);
+    }
   };
 
   const handleNextDay = () => {
-    const date = new Date(selectedDate + 'T00:00:00Z');
-    date.setUTCDate(date.getUTCDate() + 1);
-    const newDate = getDateString(date);
-    setSelectedDate(newDate);
+    try {
+      // Parse the date parts
+      const [year, month, day] = selectedDate.split('-').map(Number);
+      
+      // Create a new date (months are 0-indexed in JavaScript Date)
+      const date = new Date(year, month - 1, day);
+      
+      // Add one day
+      date.setDate(date.getDate() + 1);
+      
+      // Format back to YYYY-MM-DD
+      const newYear = date.getFullYear();
+      const newMonth = String(date.getMonth() + 1).padStart(2, '0');
+      const newDay = String(date.getDate()).padStart(2, '0');
+      
+      setSelectedDate(`${newYear}-${newMonth}-${newDay}`);
+    } catch (error) {
+      console.error('Error navigating to next day:', error);
+    }
   };
 
   const [activities, setActivities] = useState<Activity[]>(() => {
