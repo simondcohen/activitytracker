@@ -39,8 +39,13 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
         
         const now = new Date();
         const start = new Date(`${timerState.startDate}T${timerState.startTime}`);
-        const diffInSeconds = Math.floor((now.getTime() - start.getTime()) / 1000);
-        setSeconds(diffInSeconds);
+        
+        // Ensure we have valid dates before calculating difference
+        if (!isNaN(start.getTime()) && !isNaN(now.getTime())) {
+          const diffInSeconds = Math.floor((now.getTime() - start.getTime()) / 1000);
+          // Use max to ensure we don't set negative seconds
+          setSeconds(Math.max(0, diffInSeconds));
+        }
       }
     }
   }, []);
@@ -68,8 +73,13 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
       interval = window.setInterval(() => {
         const now = new Date();
         const start = new Date(`${startDate}T${startTime}`);
-        const diffInSeconds = Math.floor((now.getTime() - start.getTime()) / 1000);
-        setSeconds(diffInSeconds);
+        
+        // Ensure we have valid dates before calculating difference
+        if (!isNaN(start.getTime()) && !isNaN(now.getTime())) {
+          const diffInSeconds = Math.floor((now.getTime() - start.getTime()) / 1000);
+          // Use max to ensure we don't set negative seconds
+          setSeconds(Math.max(0, diffInSeconds));
+        }
       }, 1000);
     }
     
@@ -90,6 +100,15 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
         const now = new Date();
         const start = new Date(`${startDate}T${startTime}`);
         
+        // If date is invalid, use current date and time
+        if (isNaN(start.getTime())) {
+          setStartDate(getTodayDate());
+          setStartTime(getCurrentTimeString());
+          setSeconds(0);
+          setIsRunning(true);
+          return;
+        }
+        
         // If selected start time is in the future, reset to current time
         if (start > now) {
           setStartDate(getTodayDate());
@@ -100,6 +119,8 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
         const diffInSeconds = Math.floor((now.getTime() - start.getTime()) / 1000);
         if (diffInSeconds > 0) {
           setSeconds(diffInSeconds);
+        } else {
+          setSeconds(0);
         }
       }
     }
@@ -111,6 +132,10 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
   };
 
   const handleClear = () => {
+    // Show confirmation dialog before clearing
+    const confirmed = window.confirm("Are you sure you want to clear the timer? This action cannot be undone.");
+    if (!confirmed) return;
+    
     setIsRunning(false);
     setSeconds(0);
     setStartDate(getTodayDate());
@@ -149,6 +174,14 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
       const now = new Date();
       const start = new Date(`${startDate}T${timeValue}`);
       
+      // If date is invalid, use current date
+      if (isNaN(start.getTime())) {
+        setStartDate(getTodayDate());
+        setStartTime(getCurrentTimeString());
+        return;
+      }
+      
+      // If selected start time is in the future, reset to current date
       if (start > now) {
         setStartDate(getTodayDate());
       }
@@ -159,10 +192,19 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
   };
 
   function getCurrentTimeString() {
-    const now = new Date();
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    return `${hours}:${minutes}`;
+    try {
+      const now = new Date();
+      if (isNaN(now.getTime())) {
+        console.warn('Invalid date in getCurrentTimeString');
+        return '00:00';
+      }
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    } catch (error) {
+      console.error('Error in getCurrentTimeString:', error);
+      return '00:00';
+    }
   }
 
   return (

@@ -16,9 +16,12 @@ const timeFormatter = new Intl.DateTimeFormat('en-US', {
 
 // Format seconds into HH:MM:SS
 export const formatTime = (seconds: number, showSeconds: boolean = true): string => {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = seconds % 60;
+  // Handle negative time values by treating them as 0
+  const totalSeconds = Math.max(0, seconds);
+  
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const remainingSeconds = totalSeconds % 60;
 
   const pad = (num: number): string => num.toString().padStart(2, '0');
 
