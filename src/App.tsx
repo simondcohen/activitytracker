@@ -24,15 +24,15 @@ export default function App() {
   const [storedCategories, setStoredCategories] = useState<StoredCategories>(loadStoredCategories());
   
   const handlePreviousDay = () => {
-    const date = new Date(selectedDate);
-    date.setDate(date.getDate() - 1);
+    const date = new Date(selectedDate + 'T00:00:00Z');
+    date.setUTCDate(date.getUTCDate() - 1);
     const newDate = getDateString(date);
     setSelectedDate(newDate);
   };
 
   const handleNextDay = () => {
-    const date = new Date(selectedDate);
-    date.setDate(date.getDate() + 1);
+    const date = new Date(selectedDate + 'T00:00:00Z');
+    date.setUTCDate(date.getUTCDate() + 1);
     const newDate = getDateString(date);
     setSelectedDate(newDate);
   };
