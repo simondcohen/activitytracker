@@ -13,7 +13,7 @@ import {
   calculateDuration,
   isSameDay
 } from '../dateHelpers';
-import { Pencil, Save, Trash2, X } from 'lucide-react';
+import { Pencil, Save, Trash2, X, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface ActivityListProps {
@@ -30,6 +30,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
   storedCategories
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
     id: string;
     category: string;
@@ -90,6 +91,68 @@ export const ActivityList: React.FC<ActivityListProps> = ({
     setEditForm(null);
   };
 
+  const handleViewNotes = (activityId: string) => {
+    setSelectedActivityId(activityId);
+  };
+
+  const handleCloseNotes = () => {
+    setSelectedActivityId(null);
+  };
+
+  const handleAddNote = (activityId: string) => {
+    const activity = activities.find(a => a.id === activityId);
+    if (!activity) return;
+
+    const newNote: Note = {
+      id: crypto.randomUUID(),
+      content: '',
+      timestamp: new Date().toISOString()
+    };
+
+    const updatedActivity: Activity = {
+      ...activity,
+      notes: [...(activity.notes || []), newNote]
+    };
+
+    onUpdate(updatedActivity);
+  };
+
+  const handleUpdateNote = (activityId: string, noteId: string, content: string) => {
+    const activity = activities.find(a => a.id === activityId);
+    if (!activity || !activity.notes) return;
+
+    const updatedNotes = activity.notes.map(note => 
+      note.id === noteId ? { ...note, content } : note
+    );
+
+    const updatedActivity: Activity = {
+      ...activity,
+      notes: updatedNotes
+    };
+
+    onUpdate(updatedActivity);
+  };
+
+  const handleDeleteNote = (activityId: string, noteId: string) => {
+    const activity = activities.find(a => a.id === activityId);
+    if (!activity || !activity.notes) return;
+
+    const updatedNotes = activity.notes.filter(note => note.id !== noteId);
+
+    const updatedActivity: Activity = {
+      ...activity,
+      notes: updatedNotes
+    };
+
+    onUpdate(updatedActivity);
+  };
+
+  const handleModalClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      handleCloseNotes();
+    }
+  };
+
   // Calculate daily totals by grouping activities of the same day
   const dailyActivities = activities.reduce((acc, activity) => {
     // Group by day of the first activity's start time
@@ -113,6 +176,8 @@ export const ActivityList: React.FC<ActivityListProps> = ({
   const sortedActivities = [...activities].sort((a, b) => 
     new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   );
+
+  const selectedActivity = selectedActivityId ? activities.find(a => a.id === selectedActivityId) : null;
 
   return (
     <div className="bg-white rounded-lg shadow-md">
@@ -308,16 +373,25 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                   </div>
                   {activity.notes && activity.notes.length > 0 && (
                     <div className="mt-2 text-sm text-gray-600 border-t pt-2">
-                      <h4 className="text-xs font-medium text-gray-500 mb-2">Notes:</h4>
-                      <div className="space-y-2">
-                        {activity.notes.map((note) => (
-                          <div key={note.id} className="text-sm text-gray-600 border-b pb-2 last:border-0">
-                            <div className="text-xs text-gray-500 mb-1">
-                              {format(new Date(note.timestamp), 'h:mm a')}
+                      <div className="flex justify-between items-center">
+                        <div className="space-y-1">
+                          {activity.notes.slice(0, 2).map((note) => (
+                            <div key={note.id} className="text-sm text-gray-600 truncate">
+                              {note.content}
                             </div>
-                            {note.content}
-                          </div>
-                        ))}
+                          ))}
+                          {activity.notes.length > 2 && (
+                            <div className="text-xs text-gray-500">
+                              +{activity.notes.length - 2} more notes
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleViewNotes(activity.id)}
+                          className="text-blue-500 hover:text-blue-600 text-sm"
+                        >
+                          View Notes
+                        </button>
                       </div>
                     </div>
                   )}
@@ -327,6 +401,61 @@ export const ActivityList: React.FC<ActivityListProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Notes Modal */}
+      {selectedActivity && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10 p-4"
+          onClick={handleModalClick}
+        >
+          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-lg mx-auto max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold truncate pr-4">
+                Notes for {selectedActivity.category}
+              </h2>
+              <button
+                onClick={handleCloseNotes}
+                className="p-1 hover:bg-gray-100 rounded-full flex-shrink-0"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {selectedActivity.notes?.map((note) => (
+                <div key={note.id} className="border rounded-lg p-3 sm:p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="text-xs text-gray-500">
+                      {format(new Date(note.timestamp), 'h:mm a')}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteNote(selectedActivity.id, note.id)}
+                      className="text-gray-400 hover:text-red-500 flex-shrink-0 ml-2"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <textarea
+                    value={note.content}
+                    onChange={(e) => handleUpdateNote(selectedActivity.id, note.id, e.target.value)}
+                    className="w-full px-3 py-2 text-sm border rounded-md resize-none break-words"
+                    rows={4}
+                    style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
+                  />
+                </div>
+              ))}
+
+              <button
+                onClick={() => handleAddNote(selectedActivity.id)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              >
+                <Plus size={16} />
+                Add Note
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
