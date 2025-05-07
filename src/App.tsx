@@ -52,7 +52,11 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed;
+          // Ensure each activity has a valid notes array
+          return parsed.map(activity => ({
+            ...activity,
+            notes: Array.isArray(activity.notes) ? activity.notes : []
+          }));
         }
       }
       return [];
@@ -186,17 +190,23 @@ export default function App() {
 
       localStorage.clear();
 
-      localStorage.setItem('activities', JSON.stringify(data.activities));
+      // Ensure each activity has a valid notes array before storing
+      const validatedActivities = data.activities.map((activity: Activity) => ({
+        ...activity,
+        notes: Array.isArray(activity.notes) ? activity.notes : []
+      }));
+
+      localStorage.setItem('activities', JSON.stringify(validatedActivities));
       
       if (data.categories) {
         saveCategories(data.categories);
         setStoredCategories(data.categories);
       }
 
-      setActivities(data.activities);
+      setActivities(validatedActivities);
 
-      if (data.activities.length > 0) {
-        setSelectedDate(data.activities[0].date);
+      if (validatedActivities.length > 0) {
+        setSelectedDate(validatedActivities[0].date);
       }
     } catch (error) {
       console.error('Error importing data:', error);
