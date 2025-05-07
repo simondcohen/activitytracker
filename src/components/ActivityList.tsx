@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, StoredCategories } from '../types';
+import { Activity, StoredCategories, Note } from '../types';
 import { 
   formatTime, 
   getCategoryColor
@@ -14,6 +14,7 @@ import {
   isSameDay
 } from '../dateHelpers';
 import { Pencil, Save, Trash2, X } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface ActivityListProps {
   activities: Activity[];
@@ -34,7 +35,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
     category: string;
     startDateTime: string;
     endDateTime: string;
-    notes?: string;
+    notes?: Note[];
   } | null>(null);
 
   const handleEdit = (activity: Activity) => {
@@ -72,7 +73,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
         startTime: startTimeISO,
         endTime: endTimeISO,
         duration,
-        notes: editForm.notes
+        notes: editForm.notes || []
       };
 
       onUpdate(updatedActivity);
@@ -237,8 +238,16 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                       Notes
                     </label>
                     <textarea
-                      value={editForm.notes || ''}
-                      onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                      value={editForm.notes ? editForm.notes.map(note => note.content).join('\n') : ''}
+                      onChange={(e) => {
+                        const content = e.target.value;
+                        const newNote: Note = {
+                          id: crypto.randomUUID(),
+                          content,
+                          timestamp: new Date().toISOString()
+                        };
+                        setEditForm({ ...editForm, notes: [newNote] });
+                      }}
                       className="w-full px-3 py-2 border rounded-md h-20"
                     />
                   </div>
@@ -297,9 +306,19 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                       </button>
                     </div>
                   </div>
-                  {activity.notes && (
+                  {activity.notes && activity.notes.length > 0 && (
                     <div className="mt-2 text-sm text-gray-600 border-t pt-2">
-                      {activity.notes}
+                      <h4 className="text-xs font-medium text-gray-500 mb-2">Notes:</h4>
+                      <div className="space-y-2">
+                        {activity.notes.map((note) => (
+                          <div key={note.id} className="text-sm text-gray-600 border-b pb-2 last:border-0">
+                            <div className="text-xs text-gray-500 mb-1">
+                              {format(new Date(note.timestamp), 'h:mm a')}
+                            </div>
+                            {note.content}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

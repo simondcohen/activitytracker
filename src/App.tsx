@@ -3,7 +3,7 @@ import { Timer } from './components/Timer';
 import { ActivityList } from './components/ActivityList';
 import { ManualActivityForm } from './components/ManualActivityForm';
 import { CategoryManager } from './components/CategoryManager';
-import { Activity, StoredCategories } from './types';
+import { Activity, StoredCategories, Note } from './types';
 import { loadStoredCategories, saveCategories } from './utils';
 import { toISO, formatClock, toLocal, isSameDay, getTodayISO } from './dateHelpers';
 import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
@@ -20,6 +20,7 @@ export default function App() {
   });
   const [customCategory, setCustomCategory] = useState('');
   const [currentNotes, setCurrentNotes] = useState('');
+  const [ongoingNotes, setOngoingNotes] = useState<Note[]>([]);
   const [selectedDate, setSelectedDate] = useState(getTodayISO());
   const [showManualForm, setShowManualForm] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
@@ -74,6 +75,19 @@ export default function App() {
     saveCategories(newCategories);
   };
 
+  const handleSaveNote = () => {
+    if (!currentNotes.trim()) return;
+    
+    const newNote: Note = {
+      id: crypto.randomUUID(),
+      content: currentNotes,
+      timestamp: toISO(new Date())
+    };
+    
+    setOngoingNotes(prev => [...prev, newNote]);
+    setCurrentNotes('');
+  };
+
   const handleSaveActivity = (duration: number, startTime: string, endTime: string) => {
     if (!selectedCategory) {
       alert('Please select a category before saving');
@@ -86,11 +100,12 @@ export default function App() {
       startTime,
       endTime,
       duration,
-      notes: currentNotes,
+      notes: ongoingNotes
     };
 
     setActivities(prev => [newActivity, ...prev]);
     setCurrentNotes('');
+    setOngoingNotes([]);
   };
 
   const handleUpdateActivity = (updatedActivity: Activity) => {
@@ -321,12 +336,38 @@ export default function App() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Notes
               </label>
-              <textarea
-                value={currentNotes}
-                onChange={(e) => setCurrentNotes(e.target.value)}
-                placeholder="Add notes for the current activity..."
-                className="w-full px-3 py-2 border rounded-md h-20 resize-none"
-              />
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <textarea
+                    value={currentNotes}
+                    onChange={(e) => setCurrentNotes(e.target.value)}
+                    placeholder="Add a note for the current activity..."
+                    className="flex-1 px-3 py-2 border rounded-md h-20 resize-none"
+                  />
+                  <button
+                    onClick={handleSaveNote}
+                    disabled={!currentNotes.trim()}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Save Note
+                  </button>
+                </div>
+                {ongoingNotes.length > 0 && (
+                  <div className="border rounded-md p-3 bg-gray-50">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Saved Notes:</h4>
+                    <div className="space-y-2">
+                      {ongoingNotes.map((note) => (
+                        <div key={note.id} className="text-sm text-gray-600 border-b pb-2 last:border-0">
+                          <div className="text-xs text-gray-500 mb-1">
+                            {format(new Date(note.timestamp), 'h:mm a')}
+                          </div>
+                          {note.content}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             
             <Timer

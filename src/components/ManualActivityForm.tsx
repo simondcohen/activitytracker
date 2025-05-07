@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, StoredCategories } from '../types';
+import { Activity, StoredCategories, Note } from '../types';
 import { Plus, X } from 'lucide-react';
 import { formatForDateTimeInput, parseFromDateTimeInput, calculateDuration, getTodayISO } from '../dateHelpers';
 
@@ -18,7 +18,8 @@ export const ManualActivityForm: React.FC<ManualActivityFormProps> = ({
   const [customCategory, setCustomCategory] = useState('');
   const [startDateTime, setStartDateTime] = useState('');
   const [endDateTime, setEndDateTime] = useState('');
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [currentNote, setCurrentNote] = useState('');
 
   // Initialize with current local date/time
   React.useEffect(() => {
@@ -27,6 +28,19 @@ export const ManualActivityForm: React.FC<ManualActivityFormProps> = ({
     setStartDateTime(localDateTimeStr);
     setEndDateTime(localDateTimeStr);
   }, []);
+
+  const handleAddNote = () => {
+    if (!currentNote.trim()) return;
+    
+    const newNote: Note = {
+      id: crypto.randomUUID(),
+      content: currentNote,
+      timestamp: new Date().toISOString()
+    };
+    
+    setNotes(prev => [...prev, newNote]);
+    setCurrentNote('');
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +74,7 @@ export const ManualActivityForm: React.FC<ManualActivityFormProps> = ({
         startTime: startTimeISO,
         endTime: endTimeISO,
         duration: durationInSeconds,
-        notes,
+        notes
       };
 
       onAdd(newActivity);
@@ -175,12 +189,39 @@ export const ManualActivityForm: React.FC<ManualActivityFormProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Notes
           </label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add notes for this activity..."
-            className="w-full px-3 py-2 border rounded-md h-24 resize-none"
-          />
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <textarea
+                value={currentNote}
+                onChange={(e) => setCurrentNote(e.target.value)}
+                placeholder="Add a note for this activity..."
+                className="flex-1 px-3 py-2 border rounded-md h-20 resize-none"
+              />
+              <button
+                type="button"
+                onClick={handleAddNote}
+                disabled={!currentNote.trim()}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Add Note
+              </button>
+            </div>
+            {notes.length > 0 && (
+              <div className="border rounded-md p-3 bg-gray-50">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Saved Notes:</h4>
+                <div className="space-y-2">
+                  {notes.map((note) => (
+                    <div key={note.id} className="text-sm text-gray-600 border-b pb-2 last:border-0">
+                      <div className="text-xs text-gray-500 mb-1">
+                        {new Date(note.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                      </div>
+                      {note.content}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <button

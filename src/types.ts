@@ -4,7 +4,13 @@ export interface Activity {
   startTime: string; // ISO-8601 string in UTC
   endTime: string; // ISO-8601 string in UTC
   duration: number; // in seconds
-  notes?: string;
+  notes?: Note[];
+}
+
+export interface Note {
+  id: string;
+  content: string;
+  timestamp: string; // ISO-8601 string in UTC
 }
 
 export interface CategoryGroup {
