@@ -5,9 +5,10 @@ import { ManualActivityForm } from './components/ManualActivityForm';
 import { CategoryManager } from './components/CategoryManager';
 import { Activity, StoredCategories, Note } from './types';
 import { loadStoredCategories, saveCategories } from './utils';
-import { toISO, formatClock, toLocal, isSameDay, getTodayISO } from './dateHelpers';
+import { toISO, formatClock, toLocal, isSameDay, getTodayISO, formatForDateTimeInput, parseFromDateTimeInput, calculateDuration } from './dateHelpers';
 import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2, Clipboard } from 'lucide-react';
 import { format, subDays, addDays, parseISO } from 'date-fns';
+import { ImportJsonForm } from './components/ImportJsonForm';
 
 export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
@@ -24,6 +25,7 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(getTodayISO());
   const [showManualForm, setShowManualForm] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showImportJsonForm, setShowImportJsonForm] = useState(false);
   const [storedCategories, setStoredCategories] = useState<StoredCategories>(loadStoredCategories());
   
   const handlePreviousDay = () => {
@@ -219,6 +221,7 @@ export default function App() {
     if (e.target === e.currentTarget) {
       setShowManualForm(false);
       setShowCategoryManager(false);
+      setShowImportJsonForm(false);
     }
   };
 
@@ -261,6 +264,27 @@ export default function App() {
         console.error('Error copying to clipboard:', error);
         alert('Failed to copy to clipboard');
       });
+  };
+
+  const handleImportActivities = (importedActivities: Activity[]) => {
+    // Filter activities for the current selected day
+    const activitiesForSelectedDay = importedActivities.filter(activity =>
+      isSameDay(activity.startTime, selectedDate)
+    );
+
+    if (activitiesForSelectedDay.length === 0) {
+      alert('No activities matching the currently selected date were found in the imported data.');
+      return;
+    }
+
+    // Add activities to state
+    setActivities(prev => [...prev, ...activitiesForSelectedDay]);
+    
+    // Save to storage
+    const updatedData = [...activities, ...activitiesForSelectedDay];
+    localStorage.setItem('activities', JSON.stringify(updatedData));
+    
+    setShowImportJsonForm(false);
   };
 
   return (
@@ -420,6 +444,13 @@ export default function App() {
                   <span className="hidden sm:inline">Copy as JSON</span>
                 </button>
                 <button
+                  onClick={() => setShowImportJsonForm(true)}
+                  className="flex items-center gap-1 px-3 py-1 bg-accent-50 text-accent-700 hover:bg-accent-100 rounded-md transition-colors"
+                >
+                  <Upload size={16} />
+                  <span className="hidden sm:inline">Import from JSON</span>
+                </button>
+                <button
                   onClick={() => setShowManualForm(true)}
                   className="flex items-center gap-1 px-3 py-1 bg-primary-600 text-white hover:bg-primary-700 rounded-md transition-colors"
                 >
@@ -481,6 +512,19 @@ export default function App() {
             storedCategories={storedCategories}
             onUpdateCategories={handleUpdateCategories}
             onClose={() => setShowCategoryManager(false)}
+          />
+        </div>
+      )}
+      
+      {/* Import JSON Form Modal */}
+      {showImportJsonForm && (
+        <div
+          className="fixed inset-0 bg-neutral-900 bg-opacity-50 flex items-center justify-center z-10"
+          onClick={handleModalClick}
+        >
+          <ImportJsonForm
+            onImport={handleImportActivities}
+            onClose={() => setShowImportJsonForm(false)}
           />
         </div>
       )}
