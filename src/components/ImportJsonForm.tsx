@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Activity, Note } from '../types';
 import { X, Copy, Check } from 'lucide-react';
 import { parseFromDateTimeInput, calculateDuration } from '../dateHelpers';
+import { loadStoredCategories } from '../utils';
 
 interface ImportJsonFormProps {
   onImport: (activities: Activity[]) => void;
@@ -15,6 +16,17 @@ export const ImportJsonForm: React.FC<ImportJsonFormProps> = ({
   const [jsonInput, setJsonInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+
+  // Load available categories on mount
+  useEffect(() => {
+    const storedCategories = loadStoredCategories();
+    const allCategories = [
+      ...storedCategories.categories.work,
+      ...storedCategories.categories.personal
+    ];
+    setAvailableCategories(allCategories);
+  }, []);
 
   const exampleJson = JSON.stringify([
     {
@@ -32,6 +44,13 @@ export const ImportJsonForm: React.FC<ImportJsonFormProps> = ({
       "category": "Personal admin",
       "startTime": "2023-06-15T12:00:00.000Z",
       "endTime": "2023-06-15T13:00:00.000Z",
+      "notes": []
+    },
+    {
+      "category": "Other",
+      "customCategory": "Client Meeting",
+      "startTime": "2023-06-15T14:00:00.000Z",
+      "endTime": "2023-06-15T15:00:00.000Z",
       "notes": []
     }
   ], null, 2);
@@ -98,10 +117,16 @@ export const ImportJsonForm: React.FC<ImportJsonFormProps> = ({
           }
         }
 
+        // Set category - handle custom category if "Other" is selected
+        let category = item.category;
+        if (category === "Other" && item.customCategory) {
+          category = item.customCategory;
+        }
+
         // Create activity
         activities.push({
           id: item.id || crypto.randomUUID(),
-          category: item.category,
+          category: category,
           startTime: startTimeISO,
           endTime: endTimeISO,
           duration,
@@ -128,6 +153,8 @@ export const ImportJsonForm: React.FC<ImportJsonFormProps> = ({
   };
 
   const copyInstructionsToClipboard = () => {
+    const categoriesList = availableCategories.map(cat => `"${cat}"`).join(', ');
+    
     const instructions = `# Activity Tracker JSON Import Format
 
 Each activity should include the following required fields:
@@ -142,6 +169,12 @@ Optional fields:
   - content: Note text (string)
   - timestamp: Time the note was created (string)
   - id: Unique identifier (string) - will be generated if not provided
+
+Currently available categories: ${categoriesList}
+
+To use a custom category not in the list above:
+1. Set "category" to "Other"
+2. Add a "customCategory" field with your custom category name
 
 Example JSON format:
 ${exampleJson}`;
@@ -199,8 +232,14 @@ ${exampleJson}`;
             </button>
           </div>
           <p className="text-xs text-neutral-600 mb-3">
-            You can import a single activity or an array of activities. Each activity must include: category, startTime, and endTime.
-            Notes are optional and should be an array of objects with content and timestamp fields.
+            Each activity must include: category, startTime, and endTime.
+            <br/><br/>
+            Optional fields: id (generated if not provided), duration (calculated if not provided), 
+            and notes (array of objects with content, timestamp, and optional id).
+            <br/><br/>
+            <strong>Available categories:</strong> {availableCategories.join(', ')}
+            <br/><br/>
+            <strong>To use a custom category:</strong> Set category to "Other" and add a "customCategory" field with your custom name.
           </p>
           <div className="bg-white border rounded-md p-3 overflow-auto max-h-48">
             <pre className="text-xs text-neutral-700 whitespace-pre-wrap">{exampleJson}</pre>
