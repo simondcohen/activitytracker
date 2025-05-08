@@ -205,85 +205,87 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="text-center mb-4">
-        <div className="text-sm text-gray-500">{currentDate}</div>
-        <div className="text-4xl font-mono font-semibold mt-2">
-          {formatTime(seconds)}
+    <div className="card mb-6">
+      <div className="text-neutral-600 text-center mb-2">
+        {currentDate}
+      </div>
+      
+      <div className="text-5xl font-semibold text-center font-mono my-4 text-primary-700">
+        {formatTime(seconds)}
+      </div>
+      
+      <div className="grid grid-cols-1 gap-4 mb-4">
+        <div>
+          <label className="block text-sm font-medium text-neutral-700 mb-1" htmlFor="startTime">
+            Start Time
+          </label>
+          <input
+            type="datetime-local"
+            id="startTime"
+            className="input"
+            value={startTimeLocal}
+            onChange={handleStartTimeChange}
+            disabled={isRunning}
+          />
         </div>
       </div>
 
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Start Time
-        </label>
-        <input
-          type="datetime-local"
-          value={startTimeLocal}
-          onChange={handleStartTimeChange}
-          disabled={isRunning}
-          className="w-full border rounded-md px-3 py-2"
-        />
-      </div>
-
-      <div className="flex gap-2 mb-4">
+      <div className="flex justify-center space-x-3 mt-4">
         <button
           onClick={handleStartStop}
           disabled={!selectedCategory}
-          className={`flex-1 py-2 px-4 rounded-md flex items-center justify-center gap-2 ${
-            isRunning 
-              ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-              : 'bg-green-500 hover:bg-green-600 text-white'
-          } ${!selectedCategory ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`btn ${isRunning 
+            ? 'bg-primary-100 text-primary-800 hover:bg-primary-200' 
+            : 'btn-primary'} flex items-center justify-center gap-1`}
         >
           {isRunning ? (
             <>
-              <Pause size={16} />
-              Pause
+              <Pause size={18} />
+              <span>Pause</span>
             </>
           ) : (
             <>
-              <Play size={16} />
-              Start
+              <Play size={18} />
+              <span>Start</span>
             </>
           )}
         </button>
-
-        {isRunning ? (
-          <button
-            onClick={handleStop}
-            className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-md flex items-center justify-center gap-2"
+        
+        {isRunning && (
+          <button 
+            onClick={handleStop} 
+            className="btn bg-neutral-100 text-neutral-700 hover:bg-neutral-200 flex items-center justify-center gap-1"
           >
-            <Square size={16} />
-            Stop
+            <Square size={18} />
+            <span>Stop</span>
           </button>
-        ) : seconds > 0 ? (
-          <button
-            onClick={handleSave}
-            disabled={!selectedCategory || seconds === 0}
-            className={`flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md flex items-center justify-center gap-2 ${
-              (!selectedCategory || seconds === 0) ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+        )}
+        
+        {seconds > 0 && (
+          <button 
+            onClick={handleSave} 
+            className="btn btn-primary flex items-center justify-center gap-1"
+            disabled={!selectedCategory}
           >
-            <Save size={16} />
-            Save
+            <Save size={18} />
+            <span>Save</span>
           </button>
-        ) : null}
-
-        {!isRunning && seconds > 0 && (
-          <button
-            onClick={handleClear}
-            className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-md flex items-center justify-center gap-2"
+        )}
+        
+        {seconds > 0 && (
+          <button 
+            onClick={handleClear} 
+            className="btn bg-neutral-100 text-neutral-700 hover:bg-neutral-200 flex items-center justify-center gap-1"
           >
-            <Trash2 size={16} />
-            Clear
+            <Trash2 size={18} />
+            <span className="sr-only">Clear</span>
           </button>
         )}
       </div>
-
+      
       {!selectedCategory && (
-        <div className="text-sm text-red-500 mb-2">
-          Please select a category to start or save the timer
+        <div className="mt-3 text-sm text-neutral-600 text-center">
+          Please select a category to start tracking
         </div>
       )}
     </div>

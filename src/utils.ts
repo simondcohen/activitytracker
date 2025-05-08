@@ -178,5 +178,5 @@ export const getCategoryType = (category: string, categories: CategoryGroup): 'w
 };
 
 export const getCategoryColor = (category: string, categories: CategoryGroup): string => {
-  return getCategoryType(category, categories) === 'work' ? 'green' : 'blue';
+  return getCategoryType(category, categories) === 'work' ? '#596273' : '#2f748e';
 };

@@ -264,51 +264,54 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex flex-col gap-6">
-          <header className="bg-white p-4 rounded-lg shadow-md">
-            <div className="flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold">Activity Tracker</h1>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleExportData}
-                  className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600"
-                  title="Export Data"
-                >
-                  <Download size={18} />
-                </button>
-                <label className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 cursor-pointer" title="Import Data">
-                  <Upload size={18} />
-                  <input 
-                    type="file" 
-                    accept=".json" 
-                    className="hidden" 
-                    onChange={handleImportData}
-                  />
-                </label>
-                <button
-                  onClick={() => setShowCategoryManager(true)}
-                  className="p-2 bg-purple-500 text-white rounded-full hover:bg-purple-600"
-                  title="Manage Categories"
-                >
-                  <Settings size={18} />
-                </button>
-                <button
-                  onClick={handleClearAllData}
-                  className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
-                  title="Clear All Data"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </div>
+    <div className="min-h-screen bg-neutral-50 p-4">
+      <div className="max-w-7xl mx-auto">
+        <header className="bg-white p-4 rounded-lg shadow-sm border border-neutral-200 mb-6 flex justify-between items-center">
+          <h1 className="text-xl font-semibold text-neutral-800">Activity Tracker</h1>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExportData}
+              className="p-2 bg-neutral-100 text-neutral-700 hover:bg-neutral-200 rounded-full transition-colors"
+              title="Export Data"
+            >
+              <Download size={18} />
+            </button>
+            <label className="p-2 bg-neutral-100 text-neutral-700 hover:bg-neutral-200 rounded-full cursor-pointer transition-colors" title="Import Data">
+              <Upload size={18} />
+              <input 
+                type="file" 
+                accept=".json" 
+                className="hidden" 
+                onChange={handleImportData}
+              />
+            </label>
+            <button
+              onClick={() => setShowCategoryManager(true)}
+              className="p-2 bg-accent-50 text-accent-600 hover:bg-accent-100 rounded-full transition-colors"
+              title="Manage Categories"
+            >
+              <Settings size={18} />
+            </button>
+            <button
+              onClick={handleClearAllData}
+              className="p-2 bg-neutral-100 text-neutral-600 hover:text-red-600 hover:bg-neutral-200 rounded-full transition-colors"
+              title="Clear All Data"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+        </header>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left panel - Timer */}
+          <div className="card p-6">
+            <h2 className="text-lg font-medium text-neutral-800 mb-4">Timer</h2>
             
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Current Activity</label>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">Activity Type</label>
               <div className="space-y-3">
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">Work Activities</h3>
+                  <h3 className="text-sm font-medium text-neutral-600 mb-2">Work Activities</h3>
                   <div className="flex flex-wrap gap-2">
                     {storedCategories.categories.work.map((cat) => (
                       <button
@@ -316,8 +319,8 @@ export default function App() {
                         onClick={() => handleCategorySelect(cat)}
                         className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                           selectedCategory === cat
-                            ? 'bg-green-500 text-white'
-                            : 'bg-green-100 text-green-700 hover:bg-green-200'
+                            ? 'bg-accent-600 text-white'
+                            : 'bg-accent-100 text-accent-700 hover:bg-accent-200'
                         }`}
                       >
                         {cat}
@@ -327,7 +330,7 @@ export default function App() {
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-600 mb-2">Personal Activities</h3>
+                  <h3 className="text-sm font-medium text-neutral-600 mb-2">Personal Activities</h3>
                   <div className="flex flex-wrap gap-2">
                     {storedCategories.categories.personal.map((cat) => (
                       <button
@@ -335,8 +338,8 @@ export default function App() {
                         onClick={() => handleCategorySelect(cat)}
                         className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                           selectedCategory === cat
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-primary-100 text-primary-700 hover:bg-primary-200'
                         }`}
                       >
                         {cat}
@@ -353,14 +356,19 @@ export default function App() {
                     placeholder="Custom category name"
                     value={customCategory}
                     onChange={(e) => setCustomCategory(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-md"
+                    className="input"
                   />
                 </div>
               )}
             </div>
             
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Timer
+              onSave={handleSaveActivity}
+              selectedCategory={selectedCategory}
+            />
+            
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-neutral-700 mb-1">
                 Notes
               </label>
               <div className="space-y-3">
@@ -369,26 +377,26 @@ export default function App() {
                     value={currentNotes}
                     onChange={(e) => setCurrentNotes(e.target.value)}
                     placeholder="Add a note for the current activity..."
-                    className="flex-1 px-3 py-2 border rounded-md h-20 resize-none"
+                    className="flex-1 px-3 py-2 border border-neutral-300 rounded-md h-20 resize-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                   <button
                     onClick={handleSaveNote}
                     disabled={!currentNotes.trim()}
-                    className="self-start px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    className={`self-start p-2 rounded-md ${currentNotes.trim() ? 'bg-primary-600 hover:bg-primary-700 text-white' : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'}`}
                   >
-                    Save Note
+                    <Plus size={20} />
                   </button>
                 </div>
                 {ongoingNotes.length > 0 && (
-                  <div className="border rounded-md p-3 bg-gray-50">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Saved Notes:</h4>
-                    <div className="space-y-2">
+                  <div className="space-y-2 mt-2">
+                    <h4 className="text-xs font-medium text-neutral-500">Added Notes</h4>
+                    <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-neutral-50 rounded-md border border-neutral-200">
                       {ongoingNotes.map((note) => (
-                        <div key={note.id} className="text-sm text-gray-600 border-b pb-2 last:border-0">
-                          <div className="text-xs text-gray-500 mb-1">
+                        <div key={note.id} className="flex justify-between items-start p-2 bg-white rounded border border-neutral-200">
+                          <div className="text-sm text-neutral-700 mr-2 flex-1">{note.content}</div>
+                          <div className="text-xs text-neutral-500">
                             {format(new Date(note.timestamp), 'h:mm a')}
                           </div>
-                          {note.content}
                         </div>
                       ))}
                     </div>
@@ -396,57 +404,55 @@ export default function App() {
                 )}
               </div>
             </div>
-            
-            <Timer
-              onSave={handleSaveActivity}
-              selectedCategory={selectedCategory}
-            />
-          </header>
+          </div>
           
-          <div className="bg-white p-4 rounded-lg shadow-md">
+          {/* Right panel - Activity History */}
+          <div className="card p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold">Activity History</h2>
+              <h2 className="text-lg font-medium text-neutral-800">Activity History</h2>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleCopyDayToClipboard}
-                  className="flex items-center gap-1 px-3 py-1 bg-purple-500 text-white rounded-md hover:bg-purple-600"
+                  className="flex items-center gap-1 px-3 py-1 bg-accent-50 text-accent-600 hover:bg-accent-100 rounded-md transition-colors"
                   title="Copy day as JSON"
                 >
                   <Clipboard size={16} />
-                  Copy as JSON
+                  <span className="hidden sm:inline">Copy as JSON</span>
                 </button>
                 <button
                   onClick={() => setShowManualForm(true)}
-                  className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                  className="flex items-center gap-1 px-3 py-1 bg-primary-600 text-white hover:bg-primary-700 rounded-md transition-colors"
                 >
                   <Plus size={16} />
-                  Add Manually
+                  <span className="hidden sm:inline">Add Manually</span>
                 </button>
               </div>
             </div>
             
-            <div className="flex items-center justify-between mb-4 px-4 py-2 bg-gray-50 rounded-md">
+            <div className="flex items-center justify-between mb-4 px-4 py-2 bg-neutral-50 rounded-md border border-neutral-200">
               <button
                 onClick={handlePreviousDay}
-                className="p-1 hover:bg-gray-200 rounded-full"
+                className="p-1 text-neutral-600 hover:bg-neutral-200 rounded-full"
               >
                 <ChevronLeft size={24} />
               </button>
-              <h3 className="text-lg font-medium">{displayDate}</h3>
+              <h3 className="text-md font-medium text-neutral-800">{displayDate}</h3>
               <button
                 onClick={handleNextDay}
-                className="p-1 hover:bg-gray-200 rounded-full"
+                className="p-1 text-neutral-600 hover:bg-neutral-200 rounded-full"
               >
                 <ChevronRight size={24} />
               </button>
             </div>
             
-            <ActivityList
-              activities={filteredActivities}
-              onUpdate={handleUpdateActivity}
-              onDelete={handleDeleteActivity}
-              storedCategories={storedCategories}
-            />
+            <div className="max-h-[calc(100vh-240px)] overflow-y-auto">
+              <ActivityList
+                activities={filteredActivities}
+                onUpdate={handleUpdateActivity}
+                onDelete={handleDeleteActivity}
+                storedCategories={storedCategories}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -454,7 +460,7 @@ export default function App() {
       {/* Manual Activity Form Modal */}
       {showManualForm && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10"
+          className="fixed inset-0 bg-neutral-900 bg-opacity-50 flex items-center justify-center z-10"
           onClick={handleModalClick}
         >
           <ManualActivityForm
@@ -468,7 +474,7 @@ export default function App() {
       {/* Category Manager Modal */}
       {showCategoryManager && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10"
+          className="fixed inset-0 bg-neutral-900 bg-opacity-50 flex items-center justify-center z-10"
           onClick={handleModalClick}
         >
           <CategoryManager

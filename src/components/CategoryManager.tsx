@@ -72,7 +72,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
       {items.map((item, index) => (
         <div
           key={`${type}-${index}`}
-          className="flex items-center justify-between bg-gray-50 p-2 rounded"
+          className="flex items-center justify-between bg-neutral-50 p-2 rounded-md border border-neutral-200"
         >
           {editingCategory?.type === type && editingCategory?.index === index ? (
             <input
@@ -81,48 +81,53 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
               onChange={(e) =>
                 setEditingCategory({ ...editingCategory, value: e.target.value })
               }
-              className="flex-1 px-2 py-1 border rounded mr-2"
+              className="input flex-1 mr-2 py-1 text-sm"
               autoFocus
             />
           ) : (
-            <span className="flex-1">{item}</span>
+            <span className="flex-1 text-neutral-700">{item}</span>
           )}
-          <div className="flex gap-2">
+          <div className="flex gap-1">
             {editingCategory?.type === type && editingCategory?.index === index ? (
               <button
                 onClick={handleSaveEdit}
-                className="p-1 text-green-600 hover:text-green-700"
+                className="p-1 text-primary-600 hover:text-primary-800 rounded-full hover:bg-neutral-100"
               >
                 <Save size={16} />
               </button>
             ) : (
               <button
                 onClick={() => handleStartEdit(type, index, item)}
-                className="p-1 text-blue-600 hover:text-blue-700"
+                className="p-1 text-neutral-600 hover:text-neutral-800 rounded-full hover:bg-neutral-100"
               >
                 <Pencil size={16} />
               </button>
             )}
             <button
               onClick={() => handleDeleteCategory(type, index)}
-              className="p-1 text-red-600 hover:text-red-700"
+              className="p-1 text-neutral-600 hover:text-red-600 rounded-full hover:bg-neutral-100"
             >
               <Trash2 size={16} />
             </button>
           </div>
         </div>
       ))}
+      {items.length === 0 && (
+        <div className="text-center py-3 text-neutral-500 text-sm bg-neutral-50 rounded-md border border-neutral-200">
+          No {type} categories added yet
+        </div>
+      )}
     </div>
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={handleClick}>
-      <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Manage Categories</h2>
+    <div className="fixed inset-0 bg-neutral-900 bg-opacity-50 flex items-center justify-center z-50" onClick={handleClick}>
+      <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full mx-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-5 pb-3 border-b border-neutral-200">
+          <h2 className="text-xl font-medium text-neutral-800">Manage Categories</h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-full"
+            className="p-1 text-neutral-500 hover:text-neutral-700 rounded-full hover:bg-neutral-100"
           >
             <X size={20} />
           </button>
@@ -136,12 +141,12 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
                 placeholder="New category name"
-                className="flex-1 px-3 py-2 border rounded-md"
+                className="input flex-1"
               />
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value as 'work' | 'personal')}
-                className="px-3 py-2 border rounded-md"
+                className="input py-2 px-3"
               >
                 <option value="work">Work</option>
                 <option value="personal">Personal</option>
@@ -149,22 +154,26 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
               <button
                 onClick={handleAddCategory}
                 disabled={!newCategory.trim()}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors disabled:bg-gray-300"
+                className={`btn px-4 flex items-center gap-1 ${
+                  newCategory.trim() 
+                    ? 'btn-primary' 
+                    : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                }`}
               >
-                <Plus size={20} />
-                Add
+                <Plus size={18} />
+                <span>Add</span>
               </button>
             </div>
           </div>
 
           <div className="space-y-6">
             <div>
-              <h3 className="text-lg font-medium mb-3">Work Categories</h3>
+              <h3 className="text-base font-medium mb-3 text-neutral-800">Work Categories</h3>
               {renderCategoryList('work', storedCategories.categories.work)}
             </div>
 
             <div>
-              <h3 className="text-lg font-medium mb-3">Personal Categories</h3>
+              <h3 className="text-base font-medium mb-3 text-neutral-800">Personal Categories</h3>
               {renderCategoryList('personal', storedCategories.categories.personal)}
             </div>
           </div>
