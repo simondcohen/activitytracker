@@ -6,7 +6,7 @@ import { CategoryManager } from './components/CategoryManager';
 import { Activity, StoredCategories, Note } from './types';
 import { loadStoredCategories, saveCategories } from './utils';
 import { toISO, formatClock, toLocal, isSameDay, getTodayISO } from './dateHelpers';
-import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2, Clipboard } from 'lucide-react';
 import { format, subDays, addDays, parseISO } from 'date-fns';
 
 export default function App() {
@@ -246,6 +246,23 @@ export default function App() {
 
   const displayDate = format(parseISO(selectedDate), 'EEEE, MMMM d, yyyy');
 
+  const handleCopyDayToClipboard = () => {
+    const dataToExport = {
+      date: selectedDate,
+      activities: filteredActivities,
+      exportTimestamp: new Date().toISOString()
+    };
+    
+    navigator.clipboard.writeText(JSON.stringify(dataToExport, null, 2))
+      .then(() => {
+        alert('Day activities copied to clipboard as JSON');
+      })
+      .catch((error) => {
+        console.error('Error copying to clipboard:', error);
+        alert('Failed to copy to clipboard');
+      });
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-4xl mx-auto">
@@ -389,13 +406,23 @@ export default function App() {
           <div className="bg-white p-4 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">Activity History</h2>
-              <button
-                onClick={() => setShowManualForm(true)}
-                className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-              >
-                <Plus size={16} />
-                Add Manually
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCopyDayToClipboard}
+                  className="flex items-center gap-1 px-3 py-1 bg-purple-500 text-white rounded-md hover:bg-purple-600"
+                  title="Copy day as JSON"
+                >
+                  <Clipboard size={16} />
+                  Copy as JSON
+                </button>
+                <button
+                  onClick={() => setShowManualForm(true)}
+                  className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                >
+                  <Plus size={16} />
+                  Add Manually
+                </button>
+              </div>
             </div>
             
             <div className="flex items-center justify-between mb-4 px-4 py-2 bg-gray-50 rounded-md">
