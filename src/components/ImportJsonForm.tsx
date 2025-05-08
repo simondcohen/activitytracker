@@ -1,32 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Note } from '../types';
+import { Activity, Note, StoredCategories } from '../types';
 import { X, Copy, Check } from 'lucide-react';
 import { parseFromDateTimeInput, calculateDuration } from '../dateHelpers';
-import { loadStoredCategories } from '../utils';
 
 interface ImportJsonFormProps {
   onImport: (activities: Activity[]) => void;
   onClose: () => void;
+  storedCategories: StoredCategories;
 }
 
 export const ImportJsonForm: React.FC<ImportJsonFormProps> = ({ 
   onImport, 
-  onClose 
+  onClose,
+  storedCategories
 }) => {
   const [jsonInput, setJsonInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
 
-  // Load available categories on mount
+  // Update available categories whenever storedCategories changes
   useEffect(() => {
-    const storedCategories = loadStoredCategories();
     const allCategories = [
       ...storedCategories.categories.work,
       ...storedCategories.categories.personal
     ];
     setAvailableCategories(allCategories);
-  }, []);
+  }, [storedCategories]);
 
   const exampleJson = JSON.stringify([
     {

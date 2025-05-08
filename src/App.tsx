@@ -525,6 +525,7 @@ export default function App() {
           <ImportJsonForm
             onImport={handleImportActivities}
             onClose={() => setShowImportJsonForm(false)}
+            storedCategories={storedCategories}
           />
         </div>
       )}
