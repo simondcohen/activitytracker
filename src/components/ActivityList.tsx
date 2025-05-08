@@ -373,22 +373,24 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                   </div>
                   {activity.notes && activity.notes.length > 0 && (
                     <div className="mt-2 text-sm text-gray-600 border-t pt-2">
-                      <div className="flex justify-between items-center">
-                        <div className="space-y-1">
-                          {activity.notes.slice(0, 2).map((note) => (
-                            <div key={note.id} className="text-sm text-gray-600 truncate">
-                              {note.content}
-                            </div>
-                          ))}
-                          {activity.notes.length > 2 && (
-                            <div className="text-xs text-gray-500">
-                              +{activity.notes.length - 2} more notes
-                            </div>
-                          )}
+                      <div className="flex justify-between items-center gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="space-y-1">
+                            {activity.notes.slice(0, 2).map((note) => (
+                              <div key={note.id} className="truncate text-sm text-gray-600">
+                                {note.content}
+                              </div>
+                            ))}
+                            {activity.notes.length > 2 && (
+                              <div className="text-xs text-gray-500">
+                                +{activity.notes.length - 2} more notes
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <button
                           onClick={() => handleViewNotes(activity.id)}
-                          className="text-blue-500 hover:text-blue-600 text-sm"
+                          className="flex-shrink-0 text-blue-500 hover:text-blue-600 text-sm"
                         >
                           View Notes
                         </button>
@@ -408,7 +410,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10 p-4"
           onClick={handleModalClick}
         >
-          <div className="bg-white rounded-lg p-4 sm:p-6 w-full max-w-lg mx-auto max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-lg p-3 sm:p-4 w-full max-w-5xl mx-auto max-h-[95vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold truncate pr-4">
                 Notes for {selectedActivity.category}
@@ -438,8 +440,8 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                   <textarea
                     value={note.content}
                     onChange={(e) => handleUpdateNote(selectedActivity.id, note.id, e.target.value)}
-                    className="w-full px-3 py-2 text-sm border rounded-md resize-none break-words"
-                    rows={4}
+                    className="w-full px-3 py-2 text-sm border rounded-md resize-vertical break-words min-h-[200px]"
+                    rows={16}
                     style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}
                   />
                 </div>
