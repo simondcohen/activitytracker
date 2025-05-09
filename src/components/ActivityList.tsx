@@ -118,6 +118,25 @@ export const ActivityList: React.FC<ActivityListProps> = ({
     setSelectedActivityId(activity.id);
   };
 
+  // Dedicated function for adding a note from the modal
+  const handleAddNoteFromModal = (activity: Activity) => {
+    // Create a new empty note
+    const newNote: Note = {
+      id: crypto.randomUUID(),
+      content: '',
+      timestamp: new Date().toISOString()
+    };
+    
+    // Add the note to the activity
+    const updatedActivity: Activity = {
+      ...activity,
+      notes: [...(activity.notes || []), newNote]
+    };
+    
+    // Update the activity without reopening the modal
+    onUpdate(updatedActivity);
+  };
+
   const handleUpdateNote = (activityId: string, noteId: string, content: string) => {
     const activity = activities.find(a => a.id === activityId);
     if (!activity || !activity.notes) return;
@@ -429,7 +448,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
             
             <div className="p-4 border-t border-neutral-200 bg-neutral-50">
               <button
-                onClick={() => handleAddEmptyNote(selectedActivity)}
+                onClick={() => handleAddNoteFromModal(selectedActivity)}
                 className="btn btn-primary w-full py-3 flex items-center justify-center gap-2 text-base"
               >
                 <Plus size={18} />
