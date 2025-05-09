@@ -309,7 +309,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                         <Pencil size={16} />
                       </button>
                       <button
-                        onClick={() => handleAddEmptyNote(activity)}
+                        onClick={() => handleViewNotes(activity.id)}
                         className="p-1 text-neutral-500 hover:text-neutral-700 rounded-full hover:bg-neutral-100"
                         title="Add note"
                       >
@@ -424,13 +424,15 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                         <div className="text-sm text-neutral-600 bg-neutral-100 px-2 py-1 rounded">
                           {format(new Date(note.timestamp), 'MMM d, yyyy h:mm a')}
                         </div>
-                        <button
-                          onClick={() => handleDeleteNote(selectedActivity.id, note.id)}
-                          className="text-neutral-400 hover:text-neutral-600 p-1 rounded-full hover:bg-neutral-100"
-                          title="Delete note"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={() => handleDeleteNote(selectedActivity.id, note.id)}
+                            className="text-neutral-400 hover:text-neutral-600 p-1 rounded-full hover:bg-neutral-100"
+                            title="Delete note"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                       <textarea
                         className="w-full p-3 border border-neutral-300 rounded-md text-base font-normal leading-relaxed focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
