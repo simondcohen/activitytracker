@@ -238,6 +238,9 @@ export default function App() {
     }
   };
 
+  // Filter activities to show only those for the selected day
+  // Note: Days are defined as starting at 4am rather than midnight,
+  // so activities between midnight and 4am are grouped with the previous calendar day
   const filteredActivities = activities.filter(activity => {
     try {
       return isSameDay(activity.startTime, selectedDate);
@@ -268,6 +271,7 @@ export default function App() {
 
   const handleImportActivities = (importedActivities: Activity[]) => {
     // Filter activities for the current selected day
+    // Uses the 4am day boundary logic defined in isSameDay
     const activitiesForSelectedDay = importedActivities.filter(activity =>
       isSameDay(activity.startTime, selectedDate)
     );

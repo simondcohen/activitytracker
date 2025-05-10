@@ -174,6 +174,8 @@ export const ActivityList: React.FC<ActivityListProps> = ({
   };
 
   // Calculate daily totals by grouping activities of the same day
+  // Note: Days are considered to start at 4am rather than midnight,
+  // so activities between midnight and 4am are grouped with the previous calendar day
   const dailyActivities = activities.reduce((acc, activity) => {
     // Group by day of the first activity's start time
     const firstActivity = activities[0];

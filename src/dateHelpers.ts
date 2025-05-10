@@ -76,16 +76,42 @@ export const formatRange = (startIso: string, endIso: string): string => {
 };
 
 /**
- * Checks if two ISO strings represent the same local calendar day
+ * Checks if two ISO strings represent the same local calendar day,
+ * with days starting at 4am instead of midnight.
+ * 
+ * For example, 2023-05-08T03:00:00 is considered part of the "day" of 2023-05-07,
+ * because it's after midnight but before 4am.
  */
 export const isSameDay = (aIso: string, bIso: string): boolean => {
   try {
     const aLocal = toLocal(aIso);
     const bLocal = toLocal(bIso);
+    
+    // Adjust dates if time is between midnight and 4am
+    // These times belong to the previous calendar day for grouping purposes
+    const adjustDate = (date: Date): Date => {
+      const hours = date.getHours();
+      const isAfterMidnightBeforeFourAM = hours >= 0 && hours < 4;
+      
+      if (isAfterMidnightBeforeFourAM) {
+        // Create a new date that's 1 day earlier to represent the "display day"
+        const adjustedDate = new Date(date);
+        adjustedDate.setDate(adjustedDate.getDate() - 1);
+        return adjustedDate;
+      }
+      
+      return date;
+    };
+    
+    // Apply the adjustment to both dates
+    const adjustedA = adjustDate(aLocal);
+    const adjustedB = adjustDate(bLocal);
+    
+    // Compare the adjusted dates
     return (
-      aLocal.getFullYear() === bLocal.getFullYear() &&
-      aLocal.getMonth() === bLocal.getMonth() &&
-      aLocal.getDate() === bLocal.getDate()
+      adjustedA.getFullYear() === adjustedB.getFullYear() &&
+      adjustedA.getMonth() === adjustedB.getMonth() &&
+      adjustedA.getDate() === adjustedB.getDate()
     );
   } catch (error) {
     console.warn('Error comparing dates:', error);
@@ -94,10 +120,22 @@ export const isSameDay = (aIso: string, bIso: string): boolean => {
 };
 
 /**
- * Gets today's date in ISO format (UTC)
+ * Gets today's date in ISO format (UTC), accounting for 4am day boundary
+ * If current time is between midnight and 4am, returns previous calendar day
  */
 export const getTodayISO = (): string => {
-  return toISO(new Date());
+  const now = new Date();
+  const hours = now.getHours();
+  
+  // If it's after midnight but before 4am, consider it the previous day
+  // for display and grouping purposes
+  if (hours >= 0 && hours < 4) {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    return toISO(yesterday);
+  }
+  
+  return toISO(now);
 };
 
 /**
