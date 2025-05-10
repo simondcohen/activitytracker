@@ -4,12 +4,13 @@ import { ActivityList } from './components/ActivityList';
 import { ManualActivityForm } from './components/ManualActivityForm';
 import { CategoryManager } from './components/CategoryManager';
 import { ExportOptionsForm } from './components/ExportOptionsForm';
-import { Activity, StoredCategories, Note } from './types';
+import { Activity, StoredCategories, Note, TimestampEvent } from './types';
 import { loadStoredCategories, saveCategories } from './utils';
 import { toISO, formatClock, toLocal, isSameDay, getTodayISO, formatForDateTimeInput, parseFromDateTimeInput, calculateDuration } from './dateHelpers';
-import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2, Clipboard, MoreHorizontal } from 'lucide-react';
+import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2, Clipboard, MoreHorizontal, Flag } from 'lucide-react';
 import { format, subDays, addDays, parseISO } from 'date-fns';
 import { ImportJsonForm } from './components/ImportJsonForm';
+import { TimestampEventForm } from './components/TimestampEventForm';
 
 export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
@@ -28,8 +29,43 @@ export default function App() {
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showImportJsonForm, setShowImportJsonForm] = useState(false);
   const [showExportForm, setShowExportForm] = useState(false);
+  const [showTimestampEventForm, setShowTimestampEventForm] = useState(false);
   const [storedCategories, setStoredCategories] = useState<StoredCategories>(loadStoredCategories());
   
+  const [activities, setActivities] = useState<Activity[]>(() => {
+    try {
+      const saved = localStorage.getItem('activities');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // Ensure each activity has a valid notes array
+          return parsed.map(activity => ({
+            ...activity,
+            notes: Array.isArray(activity.notes) ? activity.notes : []
+          }));
+        }
+      }
+      return [];
+    } catch (error) {
+      console.error('Error loading activities from localStorage:', error);
+      return [];
+    }
+  });
+  
+  const [timestampEvents, setTimestampEvents] = useState<TimestampEvent[]>(() => {
+    try {
+      const saved = localStorage.getItem('timestampEvents');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return [];
+    } catch (error) {
+      console.error('Error loading timestamp events from localStorage:', error);
+      return [];
+    }
+  });
+
   const handlePreviousDay = () => {
     try {
       const date = parseISO(selectedDate);
@@ -50,26 +86,6 @@ export default function App() {
     }
   };
 
-  const [activities, setActivities] = useState<Activity[]>(() => {
-    try {
-      const saved = localStorage.getItem('activities');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          // Ensure each activity has a valid notes array
-          return parsed.map(activity => ({
-            ...activity,
-            notes: Array.isArray(activity.notes) ? activity.notes : []
-          }));
-        }
-      }
-      return [];
-    } catch (error) {
-      console.error('Error loading activities from localStorage:', error);
-      return [];
-    }
-  });
-
   useEffect(() => {
     try {
       localStorage.setItem('activities', JSON.stringify(activities));
@@ -77,6 +93,14 @@ export default function App() {
       console.error('Error saving activities to localStorage:', error);
     }
   }, [activities]);
+  
+  useEffect(() => {
+    try {
+      localStorage.setItem('timestampEvents', JSON.stringify(timestampEvents));
+    } catch (error) {
+      console.error('Error saving timestamp events to localStorage:', error);
+    }
+  }, [timestampEvents]);
 
   const handleUpdateCategories = (newCategories: StoredCategories) => {
     setStoredCategories(newCategories);
@@ -133,9 +157,27 @@ export default function App() {
     setShowManualForm(false);
   };
 
+  const handleAddTimestampEvent = (event: TimestampEvent) => {
+    setTimestampEvents(prev => [event, ...prev]);
+    setShowTimestampEventForm(false);
+  };
+
+  const handleUpdateTimestampEvent = (updatedEvent: TimestampEvent) => {
+    setTimestampEvents(prev => 
+      prev.map(event => 
+        event.id === updatedEvent.id ? updatedEvent : event
+      )
+    );
+  };
+
+  const handleDeleteTimestampEvent = (id: string) => {
+    setTimestampEvents(prev => prev.filter(event => event.id !== id));
+  };
+
   const handleExportData = () => {
     const data = {
       activities,
+      timestampEvents,
       categories: storedCategories,
       exportDate: new Date().toISOString()
     };
@@ -156,6 +198,7 @@ export default function App() {
     if (window.confirm('Are you sure you want to clear all data? This cannot be undone!')) {
       localStorage.clear();
       setActivities([]);
+      setTimestampEvents([]);
       setStoredCategories(loadStoredCategories());
       setSelectedCategory(null);
       setCustomCategory('');
@@ -167,7 +210,11 @@ export default function App() {
   const validateImportedData = (data: any): boolean => {
     if (!data || typeof data !== 'object') return false;
     
-    if (!data.activities || !Array.isArray(data.activities)) return false;
+    if (!data.activities || !Array.isArray(data.activities)) {
+      console.error('Invalid or missing activities array');
+      return false;
+    }
+    
     for (const activity of data.activities) {
       if (!activity.id || !activity.category || 
           !activity.startTime || !activity.endTime || 
@@ -175,6 +222,12 @@ export default function App() {
         console.error('Invalid activity:', activity);
         return false;
       }
+    }
+    
+    // Timestamp events validation is optional for backward compatibility
+    if (data.timestampEvents && !Array.isArray(data.timestampEvents)) {
+      console.error('Invalid timestampEvents format');
+      return false;
     }
     
     return true;
@@ -225,6 +278,7 @@ export default function App() {
       setShowCategoryManager(false);
       setShowImportJsonForm(false);
       setShowExportForm(false);
+      setShowTimestampEventForm(false);
     }
   };
 
@@ -252,6 +306,11 @@ export default function App() {
       return false;
     }
   });
+
+  // Filter timestamp events for the selected date
+  const filteredTimestampEvents = timestampEvents.filter(event => 
+    isSameDay(event.timestamp, selectedDate)
+  );
 
   const displayDate = format(parseISO(selectedDate), 'EEEE, MMMM d, yyyy');
 
@@ -291,24 +350,12 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const handleImportActivities = (importedActivities: Activity[]) => {
-    // Filter activities for the current selected day
-    // Uses the 4am day boundary logic defined in isSameDay
-    const activitiesForSelectedDay = importedActivities.filter(activity =>
-      isSameDay(activity.startTime, selectedDate)
-    );
-
-    if (activitiesForSelectedDay.length === 0) {
-      alert('No activities matching the currently selected date were found in the imported data.');
-      return;
-    }
-
-    // Add activities to state
-    setActivities(prev => [...prev, ...activitiesForSelectedDay]);
+  const handleImportActivities = (importedData: Activity[], importedTimestampEvents?: TimestampEvent[]) => {
+    setActivities(prev => [...importedData, ...prev]);
     
-    // Save to storage
-    const updatedData = [...activities, ...activitiesForSelectedDay];
-    localStorage.setItem('activities', JSON.stringify(updatedData));
+    if (importedTimestampEvents && importedTimestampEvents.length > 0) {
+      setTimestampEvents(prev => [...importedTimestampEvents, ...prev]);
+    }
     
     setShowImportJsonForm(false);
   };
@@ -478,14 +525,24 @@ export default function App() {
                   <Upload size={16} />
                   <span>Import</span>
                 </button>
-                <button
-                  onClick={() => setShowManualForm(true)}
-                  className="btn-icon bg-primary-600 text-white hover:bg-primary-700"
-                  title="Add activity manually"
-                >
-                  <Plus size={16} />
-                  <span>Add</span>
-                </button>
+                <div className="flex">
+                  <button
+                    onClick={() => setShowTimestampEventForm(true)}
+                    className="btn-icon"
+                    title="Add timestamp event"
+                  >
+                    <Flag size={16} />
+                    <span>Event</span>
+                  </button>
+                  <button
+                    onClick={() => setShowManualForm(true)}
+                    className="btn-icon bg-primary-600 text-white hover:bg-primary-700"
+                    title="Add activity manually"
+                  >
+                    <Plus size={16} />
+                    <span>Activity</span>
+                  </button>
+                </div>
               </div>
             </div>
             
@@ -508,8 +565,11 @@ export default function App() {
             <div className="max-h-[calc(100vh-240px)] overflow-y-auto">
               <ActivityList
                 activities={filteredActivities}
-                onUpdate={handleUpdateActivity}
-                onDelete={handleDeleteActivity}
+                timestampEvents={filteredTimestampEvents}
+                onUpdateActivity={handleUpdateActivity}
+                onDeleteActivity={handleDeleteActivity}
+                onUpdateTimestampEvent={handleUpdateTimestampEvent}
+                onDeleteTimestampEvent={handleDeleteTimestampEvent}
                 storedCategories={storedCategories}
               />
             </div>
@@ -533,16 +593,11 @@ export default function App() {
       
       {/* Category Manager Modal */}
       {showCategoryManager && (
-        <div
-          className="fixed inset-0 bg-neutral-900 bg-opacity-50 flex items-center justify-center z-10"
-          onClick={handleModalClick}
-        >
-          <CategoryManager
-            storedCategories={storedCategories}
-            onUpdateCategories={handleUpdateCategories}
-            onClose={() => setShowCategoryManager(false)}
-          />
-        </div>
+        <CategoryManager
+          storedCategories={storedCategories}
+          onUpdateCategories={handleUpdateCategories}
+          onClose={() => setShowCategoryManager(false)}
+        />
       )}
       
       {/* Import JSON Form Modal */}
@@ -567,9 +622,23 @@ export default function App() {
         >
           <ExportOptionsForm
             activities={activities}
+            timestampEvents={timestampEvents}
             storedCategories={storedCategories}
             currentDate={selectedDate}
             onClose={() => setShowExportForm(false)}
+          />
+        </div>
+      )}
+
+      {/* Timestamp Event Form Modal */}
+      {showTimestampEventForm && (
+        <div
+          className="fixed inset-0 bg-neutral-900 bg-opacity-50 flex items-center justify-center z-10"
+          onClick={handleModalClick}
+        >
+          <TimestampEventForm
+            onAdd={handleAddTimestampEvent}
+            onClose={() => setShowTimestampEventForm(false)}
           />
         </div>
       )}

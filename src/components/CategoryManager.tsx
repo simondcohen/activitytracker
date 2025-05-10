@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, KeyboardEvent } from 'react';
 import { CategoryGroup, StoredCategories } from '../types';
 import { Plus, X, Pencil, Save, Trash2 } from 'lucide-react';
 
@@ -27,11 +27,18 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
     const updatedCategories = { ...storedCategories };
     updatedCategories.categories = {
       ...updatedCategories.categories,
-      [selectedType]: [...updatedCategories.categories[selectedType], newCategory],
+      [selectedType]: [...updatedCategories.categories[selectedType], newCategory.trim()],
     };
 
     onUpdateCategories(updatedCategories);
     setNewCategory('');
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && newCategory.trim()) {
+      e.preventDefault();
+      handleAddCategory();
+    }
   };
 
   const handleDeleteCategory = (type: 'work' | 'personal', index: number) => {
@@ -52,10 +59,19 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
     const updatedCategories = { ...storedCategories };
     updatedCategories.categories[editingCategory.type] = updatedCategories.categories[
       editingCategory.type
-    ].map((item, index) => (index === editingCategory.index ? editingCategory.value : item));
+    ].map((item, index) => (index === editingCategory.index ? editingCategory.value.trim() : item));
 
     onUpdateCategories(updatedCategories);
     setEditingCategory(null);
+  };
+
+  const handleEditKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveEdit();
+    } else if (e.key === 'Escape') {
+      setEditingCategory(null);
+    }
   };
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -81,6 +97,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
               onChange={(e) =>
                 setEditingCategory({ ...editingCategory, value: e.target.value })
               }
+              onKeyDown={handleEditKeyDown}
               className="input flex-1 mr-2 py-1 text-sm"
               autoFocus
             />
@@ -92,6 +109,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
               <button
                 onClick={handleSaveEdit}
                 className="p-1 text-primary-600 hover:text-primary-800 rounded-full hover:bg-neutral-100"
+                title="Save"
               >
                 <Save size={16} />
               </button>
@@ -99,6 +117,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
               <button
                 onClick={() => handleStartEdit(type, index, item)}
                 className="p-1 text-neutral-600 hover:text-neutral-800 rounded-full hover:bg-neutral-100"
+                title="Edit"
               >
                 <Pencil size={16} />
               </button>
@@ -106,6 +125,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
             <button
               onClick={() => handleDeleteCategory(type, index)}
               className="p-1 text-neutral-600 hover:text-red-600 rounded-full hover:bg-neutral-100"
+              title="Delete"
             >
               <Trash2 size={16} />
             </button>
@@ -135,34 +155,41 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
 
         <div className="space-y-6">
           <div>
-            <div className="flex gap-2 mb-4">
+            <div className="space-y-2 mb-4">
               <input
                 type="text"
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="New category name"
-                className="input flex-1"
+                className="input w-full"
+                autoFocus
+                aria-label="New category name"
               />
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value as 'work' | 'personal')}
-                className="input py-2 px-3"
-              >
-                <option value="work">Work</option>
-                <option value="personal">Personal</option>
-              </select>
-              <button
-                onClick={handleAddCategory}
-                disabled={!newCategory.trim()}
-                className={`btn px-4 flex items-center gap-1 ${
-                  newCategory.trim() 
-                    ? 'btn-primary' 
-                    : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                }`}
-              >
-                <Plus size={18} />
-                <span>Add</span>
-              </button>
+              <div className="flex gap-2">
+                <select
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value as 'work' | 'personal')}
+                  className="input py-2 px-3 flex-1"
+                  aria-label="Category type"
+                >
+                  <option value="work">Work</option>
+                  <option value="personal">Personal</option>
+                </select>
+                <button
+                  onClick={handleAddCategory}
+                  disabled={!newCategory.trim()}
+                  className={`btn px-6 flex items-center justify-center gap-1 ${
+                    newCategory.trim() 
+                      ? 'btn-primary' 
+                      : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                  }`}
+                  aria-label="Add category"
+                >
+                  <Plus size={18} />
+                  <span>Add</span>
+                </button>
+              </div>
             </div>
           </div>
 
