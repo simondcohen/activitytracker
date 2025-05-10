@@ -3,10 +3,11 @@ import { Timer } from './components/Timer';
 import { ActivityList } from './components/ActivityList';
 import { ManualActivityForm } from './components/ManualActivityForm';
 import { CategoryManager } from './components/CategoryManager';
+import { ExportOptionsForm } from './components/ExportOptionsForm';
 import { Activity, StoredCategories, Note } from './types';
 import { loadStoredCategories, saveCategories } from './utils';
 import { toISO, formatClock, toLocal, isSameDay, getTodayISO, formatForDateTimeInput, parseFromDateTimeInput, calculateDuration } from './dateHelpers';
-import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2, Clipboard } from 'lucide-react';
+import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2, Clipboard, MoreHorizontal } from 'lucide-react';
 import { format, subDays, addDays, parseISO } from 'date-fns';
 import { ImportJsonForm } from './components/ImportJsonForm';
 
@@ -26,6 +27,7 @@ export default function App() {
   const [showManualForm, setShowManualForm] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showImportJsonForm, setShowImportJsonForm] = useState(false);
+  const [showExportForm, setShowExportForm] = useState(false);
   const [storedCategories, setStoredCategories] = useState<StoredCategories>(loadStoredCategories());
   
   const handlePreviousDay = () => {
@@ -222,6 +224,7 @@ export default function App() {
       setShowManualForm(false);
       setShowCategoryManager(false);
       setShowImportJsonForm(false);
+      setShowExportForm(false);
     }
   };
 
@@ -267,6 +270,25 @@ export default function App() {
         console.error('Error copying to clipboard:', error);
         alert('Failed to copy to clipboard');
       });
+  };
+
+  const handleDownloadDayAsJson = () => {
+    const dataToExport = {
+      date: selectedDate,
+      activities: filteredActivities,
+      exportTimestamp: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const formattedDate = format(parseISO(selectedDate), 'yyyy-MM-dd');
+    link.download = `activity-tracker-day-${formattedDate}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleImportActivities = (importedActivities: Activity[]) => {
@@ -440,26 +462,29 @@ export default function App() {
               <h2 className="text-lg font-medium text-neutral-800">Activity History</h2>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={handleCopyDayToClipboard}
-                  className="flex items-center gap-1 px-3 py-1 bg-accent-50 text-accent-600 hover:bg-accent-100 rounded-md transition-colors"
-                  title="Copy day as JSON"
+                  onClick={() => setShowExportForm(true)}
+                  className="btn-icon"
+                  title="Export options"
                 >
                   <Clipboard size={16} />
-                  <span className="hidden sm:inline">Copy as JSON</span>
+                  <span>Export</span>
+                  <MoreHorizontal size={14} />
                 </button>
                 <button
                   onClick={() => setShowImportJsonForm(true)}
-                  className="flex items-center gap-1 px-3 py-1 bg-accent-50 text-accent-700 hover:bg-accent-100 rounded-md transition-colors"
+                  className="btn-icon"
+                  title="Import activities from JSON"
                 >
                   <Upload size={16} />
-                  <span className="hidden sm:inline">Import from JSON</span>
+                  <span>Import</span>
                 </button>
                 <button
                   onClick={() => setShowManualForm(true)}
-                  className="flex items-center gap-1 px-3 py-1 bg-primary-600 text-white hover:bg-primary-700 rounded-md transition-colors"
+                  className="btn-icon bg-primary-600 text-white hover:bg-primary-700"
+                  title="Add activity manually"
                 >
                   <Plus size={16} />
-                  <span className="hidden sm:inline">Add Manually</span>
+                  <span>Add</span>
                 </button>
               </div>
             </div>
@@ -530,6 +555,21 @@ export default function App() {
             onImport={handleImportActivities}
             onClose={() => setShowImportJsonForm(false)}
             storedCategories={storedCategories}
+          />
+        </div>
+      )}
+
+      {/* Export Options Modal */}
+      {showExportForm && (
+        <div
+          className="fixed inset-0 bg-neutral-900 bg-opacity-50 flex items-center justify-center z-10"
+          onClick={handleModalClick}
+        >
+          <ExportOptionsForm
+            activities={activities}
+            storedCategories={storedCategories}
+            currentDate={selectedDate}
+            onClose={() => setShowExportForm(false)}
           />
         </div>
       )}
