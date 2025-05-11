@@ -7,6 +7,13 @@ export interface Activity {
   notes?: Note[];
 }
 
+export interface TimestampEvent {
+  id: string;
+  name: string;
+  timestamp: string; // ISO-8601 string in UTC
+  notes?: string;
+}
+
 export interface Note {
   id: string;
   content: string;
@@ -24,6 +31,7 @@ export interface StoredCategories {
 
 export interface AppState {
   activities: Activity[];
+  timestampEvents: TimestampEvent[];
   categories: StoredCategories;
 }
 

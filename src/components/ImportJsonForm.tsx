@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Note, StoredCategories } from '../types';
+import { Activity, Note, StoredCategories, TimestampEvent } from '../types';
 import { X, Copy, Check } from 'lucide-react';
 import { parseFromDateTimeInput, calculateDuration } from '../dateHelpers';
 
 interface ImportJsonFormProps {
-  onImport: (activities: Activity[]) => void;
+  onImport: (activities: Activity[], timestampEvents?: TimestampEvent[]) => void;
   onClose: () => void;
   storedCategories: StoredCategories;
 }
@@ -16,7 +16,7 @@ export const ImportJsonForm: React.FC<ImportJsonFormProps> = ({
 }) => {
   const [jsonInput, setJsonInput] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [showCopied, setShowCopied] = useState(false);
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
 
   // Update available categories whenever storedCategories changes
@@ -28,81 +28,93 @@ export const ImportJsonForm: React.FC<ImportJsonFormProps> = ({
     setAvailableCategories(allCategories);
   }, [storedCategories]);
 
-  const exampleJson = JSON.stringify([
-    {
-      "category": "QE work",
-      "startTime": "2023-06-15T09:00:00.000Z",
-      "endTime": "2023-06-15T11:30:00.000Z",
-      "notes": [
-        {
-          "content": "Worked on the test framework",
-          "timestamp": "2023-06-15T09:15:00.000Z"
-        }
-      ]
-    },
-    {
-      "category": "Personal admin",
-      "startTime": "2023-06-15T12:00:00.000Z",
-      "endTime": "2023-06-15T13:00:00.000Z",
-      "notes": []
-    },
-    {
-      "category": "Other",
-      "customCategory": "Client Meeting",
-      "startTime": "2023-06-15T14:00:00.000Z",
-      "endTime": "2023-06-15T15:00:00.000Z",
-      "notes": []
-    }
-  ], null, 2);
+  // Auto-populate example JSON
+  useEffect(() => {
+    const exampleActivity: Activity = {
+      id: 'example-id-123',
+      category: 'Work',
+      startTime: new Date().toISOString(),
+      endTime: new Date(Date.now() + 3600000).toISOString(), // 1 hour later
+      duration: 3600,
+      notes: [{
+        id: 'note-id-123',
+        content: 'Example note',
+        timestamp: new Date().toISOString()
+      }]
+    };
+    
+    const exampleTimestampEvent: TimestampEvent = {
+      id: 'example-event-123',
+      name: 'Woke up',
+      timestamp: new Date().toISOString(),
+      notes: 'Example note for timestamp event'
+    };
+
+    const exampleData = {
+      activities: [exampleActivity],
+      timestampEvents: [exampleTimestampEvent],
+      categories: storedCategories,
+      exportDate: new Date().toISOString()
+    };
+    
+    setJsonInput(JSON.stringify(exampleData, null, 2));
+  }, [storedCategories]);
+
+  const handleCopyExample = () => {
+    navigator.clipboard.writeText(jsonInput)
+      .then(() => {
+        setShowCopied(true);
+        setTimeout(() => setShowCopied(false), 2000);
+      })
+      .catch(err => {
+        console.error('Failed to copy: ', err);
+      });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
+    
     try {
-      // Parse JSON
-      const parsed = JSON.parse(jsonInput);
+      if (!jsonInput.trim()) {
+        throw new Error('Please enter JSON data');
+      }
+      
+      const data = JSON.parse(jsonInput);
+      
+      // Validate structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid JSON format - must be an object');
+      }
+      
+      if (!Array.isArray(data.activities)) {
+        throw new Error('Invalid JSON format - activities must be an array');
+      }
+      
+      // Process activities
       const activities: Activity[] = [];
-      
-      // Handle both single activity and array of activities
-      const activitiesToProcess = Array.isArray(parsed) ? parsed : [parsed];
-      
-      for (const item of activitiesToProcess) {
-        // Validate required fields
+      for (const item of data.activities) {
         if (!item.category || !item.startTime || !item.endTime) {
-          throw new Error('Each activity must include category, startTime, and endTime');
+          console.warn('Skipping invalid activity:', item);
+          continue;
         }
         
-        // Convert dates if they're in datetime-local format
+        // Parse dates
         let startTimeISO = item.startTime;
         let endTimeISO = item.endTime;
         
-        // If timestamps are not in ISO format, try to convert them
-        if (!item.startTime.includes('Z') && !item.startTime.includes('+')) {
-          try {
-            startTimeISO = parseFromDateTimeInput(item.startTime);
-          } catch (e) {
-            throw new Error(`Invalid startTime format: ${item.startTime}`);
-          }
+        // Calculate duration
+        let duration: number;
+        
+        if (typeof item.duration === 'number') {
+          duration = item.duration;
+        } else {
+          duration = calculateDuration(startTimeISO, endTimeISO);
         }
         
-        if (!item.endTime.includes('Z') && !item.endTime.includes('+')) {
-          try {
-            endTimeISO = parseFromDateTimeInput(item.endTime);
-          } catch (e) {
-            throw new Error(`Invalid endTime format: ${item.endTime}`);
-          }
-        }
-        
-        // Calculate duration if not provided
-        const duration = item.duration || calculateDuration(startTimeISO, endTimeISO);
-        
-        if (duration <= 0) {
-          throw new Error('End time must be after start time');
-        }
-
         // Process notes
         const notes: Note[] = [];
+        
         if (item.notes && Array.isArray(item.notes)) {
           for (const note of item.notes) {
             if (!note.content) {
@@ -133,12 +145,30 @@ export const ImportJsonForm: React.FC<ImportJsonFormProps> = ({
           notes: notes.length > 0 ? notes : undefined
         });
       }
-
-      if (activities.length === 0) {
-        throw new Error('No valid activities found in JSON');
+      
+      // Process timestamp events if present
+      const timestampEvents: TimestampEvent[] = [];
+      if (Array.isArray(data.timestampEvents)) {
+        for (const item of data.timestampEvents) {
+          if (!item.name || !item.timestamp) {
+            console.warn('Skipping invalid timestamp event:', item);
+            continue;
+          }
+          
+          timestampEvents.push({
+            id: item.id || crypto.randomUUID(),
+            name: item.name,
+            timestamp: item.timestamp,
+            notes: item.notes
+          });
+        }
       }
 
-      onImport(activities);
+      if (activities.length === 0 && timestampEvents.length === 0) {
+        throw new Error('No valid activities or timestamp events found in JSON');
+      }
+
+      onImport(activities, timestampEvents);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -152,40 +182,22 @@ export const ImportJsonForm: React.FC<ImportJsonFormProps> = ({
     e.stopPropagation();
   };
 
-  const copyInstructionsToClipboard = () => {
-    const categoriesList = availableCategories.map(cat => `"${cat}"`).join(', ');
-    
-    const instructions = `# Activity Tracker JSON Import Format
-
-Each activity should include the following required fields:
-- category: The category name (string)
-- startTime: Start time in ISO format or datetime-local format (string)
-- endTime: End time in ISO format or datetime-local format (string)
-
-Optional fields:
-- id: Unique identifier (string) - will be generated if not provided
-- duration: Duration in seconds (number) - will be calculated if not provided
-- notes: Array of notes, each with:
-  - content: Note text (string)
-  - timestamp: Time the note was created (string)
-  - id: Unique identifier (string) - will be generated if not provided
-
-Currently available categories: ${categoriesList}
-
-To use a custom category not in the list above:
-1. Set "category" to "Other"
-2. Add a "customCategory" field with your custom category name
-
-Example JSON format:
-${exampleJson}`;
-
+  const handleCopyInstructions = () => {
+    const instructions = `
+  Import JSON Format:
+  
+  You can import activities in JSON format. The JSON should be an object with an "activities" array and an optional "timestampEvents" array.
+  
+  Example JSON format:
+  ${jsonInput}`;
+  
     navigator.clipboard.writeText(instructions)
       .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setShowCopied(true);
+        setTimeout(() => setShowCopied(false), 2000);
       })
       .catch(err => {
-        console.error('Failed to copy instructions:', err);
+        console.error('Failed to copy: ', err);
       });
   };
 
@@ -223,11 +235,11 @@ ${exampleJson}`;
             <h3 className="font-medium text-neutral-800">JSON Format Example</h3>
             <button
               type="button"
-              onClick={copyInstructionsToClipboard}
+              onClick={handleCopyInstructions}
               className="flex items-center gap-1 text-sm px-2 py-1 bg-accent-50 text-accent-600 hover:bg-accent-100 rounded-md transition-colors"
               title="Copy format instructions"
             >
-              {copied ? <Check size={16} /> : <Copy size={16} />}
+              {showCopied ? <Check size={16} /> : <Copy size={16} />}
               <span>Copy Instructions</span>
             </button>
           </div>
@@ -242,7 +254,7 @@ ${exampleJson}`;
             <strong>To use a custom category:</strong> Set category to "Other" and add a "customCategory" field with your custom name.
           </p>
           <div className="bg-white border rounded-md p-3 overflow-auto max-h-48">
-            <pre className="text-xs text-neutral-700 whitespace-pre-wrap">{exampleJson}</pre>
+            <pre className="text-xs text-neutral-700 whitespace-pre-wrap">{jsonInput}</pre>
           </div>
         </div>
         
