@@ -7,7 +7,7 @@ import { ExportOptionsForm } from './components/ExportOptionsForm';
 import { Activity, StoredCategories, Note, TimestampEvent } from './types';
 import { loadStoredCategories, saveCategories } from './utils';
 import { toISO, formatClock, toLocal, isSameDay, getTodayISO, formatForDateTimeInput, parseFromDateTimeInput, calculateDuration } from './dateHelpers';
-import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2, Clipboard, MoreHorizontal, Flag } from 'lucide-react';
+import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2, Clipboard, MoreHorizontal, Flag, Check, X, Pencil } from 'lucide-react';
 import { format, subDays, addDays, parseISO } from 'date-fns';
 import { ImportJsonForm } from './components/ImportJsonForm';
 import { TimestampEventForm } from './components/TimestampEventForm';
@@ -24,6 +24,8 @@ export default function App() {
   const [customCategory, setCustomCategory] = useState('');
   const [currentNotes, setCurrentNotes] = useState('');
   const [ongoingNotes, setOngoingNotes] = useState<Note[]>([]);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteContent, setEditingNoteContent] = useState('');
   const [selectedDate, setSelectedDate] = useState(getTodayISO());
   const [showManualForm, setShowManualForm] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
@@ -118,6 +120,35 @@ export default function App() {
     
     setOngoingNotes(prev => [...prev, newNote]);
     setCurrentNotes('');
+  };
+
+  const handleEditNote = (noteId: string) => {
+    const note = ongoingNotes.find(n => n.id === noteId);
+    if (note) {
+      setEditingNoteId(noteId);
+      setEditingNoteContent(note.content);
+    }
+  };
+
+  const handleSaveEditedNote = () => {
+    if (!editingNoteId || !editingNoteContent.trim()) return;
+
+    setOngoingNotes(prev => prev.map(note => 
+      note.id === editingNoteId 
+        ? { ...note, content: editingNoteContent }
+        : note
+    ));
+    setEditingNoteId(null);
+    setEditingNoteContent('');
+  };
+
+  const handleDeleteNote = (noteId: string) => {
+    setOngoingNotes(prev => prev.filter(note => note.id !== noteId));
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNoteId(null);
+    setEditingNoteContent('');
   };
 
   const handleSaveActivity = (duration: number, startTime: string, endTime: string) => {
@@ -490,10 +521,55 @@ export default function App() {
                     <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-neutral-50 rounded-md border border-neutral-200">
                       {ongoingNotes.map((note) => (
                         <div key={note.id} className="flex justify-between items-start p-2 bg-white rounded border border-neutral-200">
-                          <div className="text-sm text-neutral-700 mr-2 flex-1">{note.content}</div>
-                          <div className="text-xs text-neutral-500">
-                            {format(new Date(note.timestamp), 'h:mm a')}
-                          </div>
+                          {editingNoteId === note.id ? (
+                            <div className="flex-1 flex gap-2">
+                              <textarea
+                                value={editingNoteContent}
+                                onChange={(e) => setEditingNoteContent(e.target.value)}
+                                className="flex-1 px-2 py-1 border border-neutral-300 rounded-md text-sm resize-none"
+                                rows={3}
+                              />
+                              <div className="flex flex-col gap-1">
+                                <button
+                                  onClick={handleSaveEditedNote}
+                                  className="p-1 text-primary-600 hover:text-primary-800"
+                                  title="Save"
+                                >
+                                  <Check size={14} />
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="p-1 text-neutral-400 hover:text-neutral-600"
+                                  title="Cancel"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="text-sm text-neutral-700 mr-2 flex-1">{note.content}</div>
+                              <div className="flex items-center gap-1">
+                                <div className="text-xs text-neutral-500">
+                                  {format(new Date(note.timestamp), 'h:mm a')}
+                                </div>
+                                <button
+                                  onClick={() => handleEditNote(note.id)}
+                                  className="p-1 text-neutral-400 hover:text-neutral-600"
+                                  title="Edit note"
+                                >
+                                  <Pencil size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteNote(note.id)}
+                                  className="p-1 text-neutral-400 hover:text-neutral-600"
+                                  title="Delete note"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
                       ))}
                     </div>
