@@ -601,24 +601,22 @@ export default function App() {
                   <Upload size={16} />
                   <span>Import</span>
                 </button>
-                <div className="flex">
-                  <button
-                    onClick={() => setShowTimestampEventForm(true)}
-                    className="btn-icon"
-                    title="Add timestamp event"
-                  >
-                    <Flag size={16} />
-                    <span>Event</span>
-                  </button>
-                  <button
-                    onClick={() => setShowManualForm(true)}
-                    className="btn-icon bg-primary-600 text-white hover:bg-primary-700"
-                    title="Add activity manually"
-                  >
-                    <Plus size={16} />
-                    <span>Activity</span>
-                  </button>
-                </div>
+                <button
+                  onClick={() => setShowTimestampEventForm(true)}
+                  className="btn-icon"
+                  title="Add timestamp event"
+                >
+                  <Flag size={16} />
+                  <span>Event</span>
+                </button>
+                <button
+                  onClick={() => setShowManualForm(true)}
+                  className="btn-icon bg-primary-600 text-white hover:bg-primary-700"
+                  title="Add activity manually"
+                >
+                  <Plus size={16} />
+                  <span>Activity</span>
+                </button>
               </div>
             </div>
             
