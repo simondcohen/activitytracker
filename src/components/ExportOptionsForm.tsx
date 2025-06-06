@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Activity, StoredCategories, TimestampEvent } from '../types';
-import { format, parseISO, eachDayOfInterval } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Check, Download, Clipboard, X } from 'lucide-react';
-import { getCategoryType, formatForDateTimeInput } from '../utils';
+import { getCategoryType } from '../utils';
 import { isSameDay } from '../dateHelpers';
 
 interface ExportOptionsFormProps {
@@ -16,7 +16,6 @@ interface ExportOptionsFormProps {
 export const ExportOptionsForm: React.FC<ExportOptionsFormProps> = ({
   onClose,
   activities,
-  timestampEvents,
   storedCategories,
   currentDate
 }) => {

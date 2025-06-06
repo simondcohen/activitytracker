@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Note, StoredCategories, TimestampEvent } from '../types';
 import { X, Copy, Check } from 'lucide-react';
-import { parseFromDateTimeInput, calculateDuration } from '../dateHelpers';
+import { calculateDuration } from '../dateHelpers';
 
 interface ImportJsonFormProps {
   onImport: (activities: Activity[], timestampEvents?: TimestampEvent[]) => void;
@@ -100,8 +100,8 @@ export const ImportJsonForm: React.FC<ImportJsonFormProps> = ({
         }
         
         // Parse dates
-        let startTimeISO = item.startTime;
-        let endTimeISO = item.endTime;
+        const startTimeISO = item.startTime;
+        const endTimeISO = item.endTime;
         
         // Calculate duration
         let duration: number;

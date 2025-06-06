@@ -6,7 +6,7 @@ import { CategoryManager } from './components/CategoryManager';
 import { ExportOptionsForm } from './components/ExportOptionsForm';
 import { Activity, StoredCategories, Note, TimestampEvent } from './types';
 import { loadStoredCategories, saveCategories } from './utils';
-import { toISO, formatClock, toLocal, isSameDay, getTodayISO, formatForDateTimeInput, parseFromDateTimeInput, calculateDuration } from './dateHelpers';
+import { toISO, isSameDay, getTodayISO } from './dateHelpers';
 import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2, Clipboard, MoreHorizontal, Flag, Check, X, Pencil } from 'lucide-react';
 import { format, subDays, addDays, parseISO } from 'date-fns';
 import { ImportJsonForm } from './components/ImportJsonForm';

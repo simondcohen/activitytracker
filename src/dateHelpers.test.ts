@@ -9,7 +9,6 @@ import {
   parseFromDateTimeInput,
   calculateDuration
 } from './dateHelpers';
-import { format } from 'date-fns';
 
 describe('dateHelpers', () => {
   describe('toISO', () => {

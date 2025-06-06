@@ -14,6 +14,15 @@ export interface TimestampEvent {
   notes?: string;
 }
 
+export interface MedicationEntry {
+  id: string;
+  medication: string;
+  customMedication?: string;
+  dose: string;
+  timestamp: string; // ISO-8601 string in UTC
+  notes: string;
+}
+
 export interface Note {
   id: string;
   content: string;

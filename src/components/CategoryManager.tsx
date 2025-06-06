@@ -1,5 +1,5 @@
 import React, { useState, KeyboardEvent } from 'react';
-import { CategoryGroup, StoredCategories } from '../types';
+import { StoredCategories } from '../types';
 import { Plus, X, Pencil, Save, Trash2 } from 'lucide-react';
 
 interface CategoryManagerProps {

@@ -5,15 +5,13 @@ import {
   getCategoryColor
 } from '../utils';
 import { 
-  formatClock,
   formatRange,
-  toLocal,
   formatForDateTimeInput,
   parseFromDateTimeInput,
   calculateDuration,
   isSameDay
 } from '../dateHelpers';
-import { Pencil, Save, Trash2, X, ChevronDown, ChevronUp, Plus, Clock, MessageSquare } from 'lucide-react';
+import { Pencil, Save, Trash2, X, Plus, Clock, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { TimestampEventItem } from './TimestampEventItem';
 

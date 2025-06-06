@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, Save, Square, Trash2 } from 'lucide-react';
 import { formatTime } from '../utils';
-import { toISO, formatClock, toLocal, formatForDateTimeInput, parseFromDateTimeInput } from '../dateHelpers';
+import { toISO, formatForDateTimeInput, parseFromDateTimeInput } from '../dateHelpers';
 
 interface TimerProps {
   onSave: (duration: number, startTime: string, endTime: string) => void;
@@ -20,12 +20,12 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
   const [seconds, setSeconds] = useState(0);
   const [startTime, setStartTime] = useState(toISO(new Date()));
   const [startTimeLocal, setStartTimeLocal] = useState(formatForDateTimeInput(toISO(new Date())));
-  const [currentDate, setCurrentDate] = useState(new Date().toLocaleDateString('en-US', {
+  const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric'
-  }));
+  });
 
   // Load timer state from localStorage on component mount
   useEffect(() => {

@@ -31,6 +31,33 @@ export const toISO = (date: Date | number | string): string => {
 };
 
 /**
+ * Convert a Date object to ISO string while preserving local timezone
+ * (Legacy compatibility function - same as toISO)
+ */
+export const toLocalISOString = (date: Date): string => {
+  return date.toISOString();
+};
+
+/**
+ * Parse an ISO string to a Date object
+ * (Legacy compatibility function - similar to toLocal but returns raw Date)
+ */
+export const fromLocalISOString = (iso: string): Date => {
+  if (!iso) return new Date(); // Return current time if no date provided
+  try {
+    const date = new Date(iso);
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date string:', iso);
+      return new Date();
+    }
+    return date;
+  } catch (error) {
+    console.warn('Error parsing date:', error);
+    return new Date();
+  }
+};
+
+/**
  * Converts an ISO string to a Date object in local time
  */
 export const toLocal = (iso: string): Date => {
@@ -47,6 +74,24 @@ export const toLocal = (iso: string): Date => {
 };
 
 /**
+ * Get today's date in YYYY-MM-DD format in local timezone
+ */
+export const getTodayDate = (): string => {
+  const now = new Date();
+  return getDateString(now);
+};
+
+/**
+ * Get date string in YYYY-MM-DD format for any date
+ */
+export const getDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/**
  * Formats an ISO string as HH:MM in local time
  */
 export const formatClock = (iso: string): string => {
@@ -55,6 +100,19 @@ export const formatClock = (iso: string): string => {
     return format(localDate, 'HH:mm');
   } catch (error) {
     console.warn('Error formatting clock time:', error);
+    return 'Invalid Time';
+  }
+};
+
+/**
+ * Format a date string for display in the UI (HH:MM format)
+ */
+export const formatDateTime = (dateString: string): string => {
+  try {
+    const date = fromLocalISOString(dateString);
+    return format(date, 'HH:mm');
+  } catch (error) {
+    console.warn('Error formatting date time:', error);
     return 'Invalid Time';
   }
 };
@@ -73,6 +131,13 @@ export const formatRange = (startIso: string, endIso: string): string => {
     console.warn('Error formatting time range:', error);
     return 'Invalid Time Range';
   }
+};
+
+/**
+ * Format a time range for display (legacy compatibility function)
+ */
+export const formatTimeRange = (startTime: string, endTime: string): string => {
+  return formatRange(startTime, endTime);
 };
 
 /**
@@ -104,6 +169,20 @@ export function isSameDay(isoA: string, isoB: string): boolean {
     aShifted.getDate() === bShifted.getDate()
   );
 }
+
+/**
+ * Filter function to check if a date matches a specific date string
+ */
+export const filterByDate = (dateStr: string, targetDate: string): boolean => {
+  try {
+    const date = fromLocalISOString(dateStr);
+    const dateString = date.toISOString().split('T')[0];
+    return dateString === targetDate;
+  } catch (error) {
+    console.warn('Error filtering by date:', error);
+    return false;
+  }
+};
 
 /**
  * Gets today's date in ISO format (UTC), accounting for 4am day boundary

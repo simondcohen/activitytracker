@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { TimestampEvent } from '../types';
 import { X } from 'lucide-react';
-import { formatForDateTimeInput, parseFromDateTimeInput, getTodayISO } from '../dateHelpers';
-import { format, parseISO } from 'date-fns';
+import { parseFromDateTimeInput } from '../dateHelpers';
+import { format } from 'date-fns';
 
 interface TimestampEventFormProps {
   onAdd: (event: TimestampEvent) => void;

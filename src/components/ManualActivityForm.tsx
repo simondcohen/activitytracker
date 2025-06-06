@@ -23,7 +23,6 @@ export const ManualActivityForm: React.FC<ManualActivityFormProps> = ({
 
   // Initialize with current local date/time
   React.useEffect(() => {
-    const now = new Date();
     const localDateTimeStr = formatForDateTimeInput(getTodayISO());
     setStartDateTime(localDateTimeStr);
     setEndDateTime(localDateTimeStr);

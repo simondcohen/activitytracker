@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { MedicationEntry } from '../types';
-import { toLocalISOString, getTodayDate } from '../utils';
+import { toLocalISOString, getTodayDate } from '../dateHelpers';
 
 interface MedicationFormProps {
   onAdd: (entry: MedicationEntry) => void;
