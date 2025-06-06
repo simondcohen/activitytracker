@@ -384,12 +384,13 @@ export default function App() {
     const dataToExport = {
       date: selectedDate,
       activities: filteredActivities,
+      timestampEvents: filteredTimestampEvents,
       exportTimestamp: new Date().toISOString()
     };
     
     navigator.clipboard.writeText(JSON.stringify(dataToExport, null, 2))
       .then(() => {
-        alert('Day activities copied to clipboard as JSON');
+        alert('Day activities and timestamp events copied to clipboard as JSON');
       })
       .catch((error) => {
         console.error('Error copying to clipboard:', error);
@@ -401,6 +402,7 @@ export default function App() {
     const dataToExport = {
       date: selectedDate,
       activities: filteredActivities,
+      timestampEvents: filteredTimestampEvents,
       exportTimestamp: new Date().toISOString()
     };
     
