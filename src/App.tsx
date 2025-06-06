@@ -8,7 +8,7 @@ import { Activity, StoredCategories, Note, TimestampEvent } from './types';
 import { loadStoredCategories, saveCategories } from './utils';
 import { toISO, isSameDay, getTodayISO } from './dateHelpers';
 import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2, Clipboard, MoreHorizontal, Flag, Check, X, Pencil } from 'lucide-react';
-import { format, subDays, addDays, parseISO } from 'date-fns';
+import { format, subDays, addDays, parseISO, isValid } from 'date-fns';
 import { ImportJsonForm } from './components/ImportJsonForm';
 import { TimestampEventForm } from './components/TimestampEventForm';
 
@@ -238,29 +238,57 @@ export default function App() {
     }
   };
 
-  const validateImportedData = (data: any): boolean => {
+  const validateImportedData = (data: unknown): boolean => {
     if (!data || typeof data !== 'object') return false;
-    
+
     if (!data.activities || !Array.isArray(data.activities)) {
       console.error('Invalid or missing activities array');
       return false;
     }
-    
+
+    const isValidIso = (iso: unknown) => {
+      if (typeof iso !== 'string') return false;
+      const parsed = parseISO(iso);
+      return isValid(parsed);
+    };
+
     for (const activity of data.activities) {
-      if (!activity.id || !activity.category || 
-          !activity.startTime || !activity.endTime || 
-          typeof activity.duration !== 'number') {
+      if (
+        !activity.id ||
+        !activity.category ||
+        !activity.startTime ||
+        !activity.endTime ||
+        typeof activity.duration !== 'number'
+      ) {
         console.error('Invalid activity:', activity);
         return false;
       }
+
+      if (!isValidIso(activity.startTime) || !isValidIso(activity.endTime)) {
+        console.error('Invalid activity date:', activity);
+        return false;
+      }
     }
-    
-    // Timestamp events validation is optional for backward compatibility
-    if (data.timestampEvents && !Array.isArray(data.timestampEvents)) {
-      console.error('Invalid timestampEvents format');
-      return false;
+
+    if (data.timestampEvents) {
+      if (!Array.isArray(data.timestampEvents)) {
+        console.error('Invalid timestampEvents format');
+        return false;
+      }
+
+      for (const event of data.timestampEvents) {
+        if (!event.id || !event.name || !event.timestamp) {
+          console.error('Invalid timestamp event:', event);
+          return false;
+        }
+
+        if (!isValidIso(event.timestamp)) {
+          console.error('Invalid timestamp event date:', event);
+          return false;
+        }
+      }
     }
-    
+
     return true;
   };
 
@@ -284,17 +312,24 @@ export default function App() {
         notes: Array.isArray(activity.notes) ? activity.notes : []
       }));
 
+      // Validate and restore timestamp events if present
+      const validatedTimestampEvents = Array.isArray(data.timestampEvents)
+        ? data.timestampEvents.map((event: TimestampEvent) => ({ ...event }))
+        : [];
+
       localStorage.setItem('activities', JSON.stringify(validatedActivities));
-      
+      localStorage.setItem('timestampEvents', JSON.stringify(validatedTimestampEvents));
+
       if (data.categories) {
         saveCategories(data.categories);
         setStoredCategories(data.categories);
       }
 
       setActivities(validatedActivities);
+      setTimestampEvents(validatedTimestampEvents);
 
       if (validatedActivities.length > 0) {
-        setSelectedDate(validatedActivities[0].date);
+        setSelectedDate(validatedActivities[0].startTime);
       }
     } catch (error) {
       console.error('Error importing data:', error);
