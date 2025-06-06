@@ -16,6 +16,7 @@ interface ExportOptionsFormProps {
 export const ExportOptionsForm: React.FC<ExportOptionsFormProps> = ({
   onClose,
   activities,
+  timestampEvents,
   storedCategories,
   currentDate
 }) => {
@@ -88,17 +89,48 @@ export const ExportOptionsForm: React.FC<ExportOptionsFormProps> = ({
     return filteredActivities;
   };
 
+  // Filter timestamp events based on selected date range (no category filtering)
+  const getFilteredTimestampEvents = () => {
+    let filteredEvents = timestampEvents;
+    
+    // Filter by date range
+    if (exportType === 'range') {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      if (start > end) {
+        return []; // Invalid date range
+      }
+      
+      filteredEvents = filteredEvents.filter(event => {
+        const eventDate = parseISO(event.timestamp);
+        return (
+          eventDate >= start && 
+          eventDate <= new Date(end.getTime() + 24 * 60 * 60 * 1000 - 1) // Include all of end date
+        );
+      });
+    } else {
+      // Single day export
+      filteredEvents = filteredEvents.filter(event => 
+        isSameDay(event.timestamp, currentDate)
+      );
+    }
+    
+    return filteredEvents;
+  };
+
   // Export handlers
   const handleCopyToClipboard = () => {
     const dataToExport = {
       dateRange: exportType === 'range' ? { startDate, endDate } : { date: currentDate },
       activities: getFilteredActivities(),
+      timestampEvents: getFilteredTimestampEvents(),
       exportTimestamp: new Date().toISOString()
     };
     
     navigator.clipboard.writeText(JSON.stringify(dataToExport, null, 2))
       .then(() => {
-        alert('Activities copied to clipboard as JSON');
+        alert('Activities and timestamp events copied to clipboard as JSON');
         onClose();
       })
       .catch((error) => {
@@ -109,10 +141,12 @@ export const ExportOptionsForm: React.FC<ExportOptionsFormProps> = ({
 
   const handleDownloadJson = () => {
     const filteredActivities = getFilteredActivities();
+    const filteredTimestampEvents = getFilteredTimestampEvents();
     
     const dataToExport = {
       dateRange: exportType === 'range' ? { startDate, endDate } : { date: currentDate },
       activities: filteredActivities,
+      timestampEvents: filteredTimestampEvents,
       exportTimestamp: new Date().toISOString()
     };
     
@@ -141,7 +175,10 @@ export const ExportOptionsForm: React.FC<ExportOptionsFormProps> = ({
   };
 
   const filteredActivities = getFilteredActivities();
+  const filteredTimestampEvents = getFilteredTimestampEvents();
   const hasActivities = filteredActivities.length > 0;
+  const hasTimestampEvents = filteredTimestampEvents.length > 0;
+  const hasAnyData = hasActivities || hasTimestampEvents;
 
   return (
     <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -308,12 +345,12 @@ export const ExportOptionsForm: React.FC<ExportOptionsFormProps> = ({
       <div className="mb-4 p-3 bg-neutral-50 rounded-md border border-neutral-200">
         <h3 className="text-sm font-medium text-neutral-700 mb-2">Export Preview</h3>
         <p className="text-sm text-neutral-600">
-          {hasActivities ? (
+          {hasAnyData ? (
             <>
-              <span className="font-medium">{filteredActivities.length}</span> activities will be exported
+              <span className="font-medium">{filteredActivities.length}</span> activities and <span className="font-medium">{filteredTimestampEvents.length}</span> timestamp events will be exported
             </>
           ) : (
-            <span className="text-red-600">No activities match your filters</span>
+            <span className="text-red-600">No activities or timestamp events match your filters</span>
           )}
         </p>
       </div>
@@ -328,9 +365,9 @@ export const ExportOptionsForm: React.FC<ExportOptionsFormProps> = ({
         </button>
         <button
           onClick={handleCopyToClipboard}
-          disabled={!hasActivities}
+          disabled={!hasAnyData}
           className={`px-4 py-2 rounded-md text-sm flex items-center gap-2 ${
-            hasActivities
+            hasAnyData
               ? 'bg-accent-600 hover:bg-accent-700 text-white'
               : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
           }`}
@@ -340,9 +377,9 @@ export const ExportOptionsForm: React.FC<ExportOptionsFormProps> = ({
         </button>
         <button
           onClick={handleDownloadJson}
-          disabled={!hasActivities}
+          disabled={!hasAnyData}
           className={`px-4 py-2 rounded-md text-sm flex items-center gap-2 ${
-            hasActivities
+            hasAnyData
               ? 'bg-primary-600 hover:bg-primary-700 text-white'
               : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
           }`}
