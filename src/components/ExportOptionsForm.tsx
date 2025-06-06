@@ -260,7 +260,7 @@ export const ExportOptionsForm: React.FC<ExportOptionsFormProps> = ({
 
       {/* Category selection (visible only when filter is enabled) */}
       {filterByCategories && (
-        <div className="mb-4 p-3 bg-neutral-50 rounded-md border border-neutral-200">
+        <div className="mb-4 p-3 bg-neutral-50 rounded-md border border-neutral-200 max-h-80 overflow-y-auto">
           <div className="mb-3">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-sm font-medium text-neutral-600">Work Categories</h3>

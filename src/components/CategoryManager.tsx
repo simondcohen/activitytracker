@@ -141,9 +141,9 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 bg-neutral-900 bg-opacity-50 flex items-center justify-center z-50" onClick={handleClick}>
-      <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full mx-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-5 pb-3 border-b border-neutral-200">
+    <div className="fixed inset-0 bg-neutral-900 bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={handleClick}>
+      <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-5 pb-3 border-b border-neutral-200 flex-shrink-0">
           <h2 className="text-xl font-medium text-neutral-800">Manage Categories</h2>
           <button
             onClick={onClose}
@@ -153,55 +153,61 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
           </button>
         </div>
 
-        <div className="space-y-6">
-          <div>
-            <div className="space-y-2 mb-4">
-              <input
-                type="text"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="New category name"
-                className="input w-full"
-                autoFocus
-                aria-label="New category name"
-              />
-              <div className="flex gap-2">
-                <select
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value as 'work' | 'personal')}
-                  className="input py-2 px-3 flex-1"
-                  aria-label="Category type"
-                >
-                  <option value="work">Work</option>
-                  <option value="personal">Personal</option>
-                </select>
-                <button
-                  onClick={handleAddCategory}
-                  disabled={!newCategory.trim()}
-                  className={`btn px-6 flex items-center justify-center gap-1 ${
-                    newCategory.trim() 
-                      ? 'btn-primary' 
-                      : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-                  }`}
-                  aria-label="Add category"
-                >
-                  <Plus size={18} />
-                  <span>Add</span>
-                </button>
+        <div className="flex-1 overflow-y-auto">
+          <div className="space-y-6">
+            <div className="flex-shrink-0">
+              <div className="space-y-2 mb-4">
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="New category name"
+                  className="input w-full"
+                  autoFocus
+                  aria-label="New category name"
+                />
+                <div className="flex gap-2">
+                  <select
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value as 'work' | 'personal')}
+                    className="input py-2 px-3 flex-1"
+                    aria-label="Category type"
+                  >
+                    <option value="work">Work</option>
+                    <option value="personal">Personal</option>
+                  </select>
+                  <button
+                    onClick={handleAddCategory}
+                    disabled={!newCategory.trim()}
+                    className={`btn px-6 flex items-center justify-center gap-1 ${
+                      newCategory.trim() 
+                        ? 'btn-primary' 
+                        : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                    }`}
+                    aria-label="Add category"
+                  >
+                    <Plus size={18} />
+                    <span>Add</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-base font-medium mb-3 text-neutral-800">Work Categories</h3>
-              {renderCategoryList('work', storedCategories.categories.work)}
-            </div>
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-base font-medium mb-3 text-neutral-800">Work Categories</h3>
+                <div className="max-h-64 overflow-y-auto">
+                  {renderCategoryList('work', storedCategories.categories.work)}
+                </div>
+              </div>
 
-            <div>
-              <h3 className="text-base font-medium mb-3 text-neutral-800">Personal Categories</h3>
-              {renderCategoryList('personal', storedCategories.categories.personal)}
+              <div>
+                <h3 className="text-base font-medium mb-3 text-neutral-800">Personal Categories</h3>
+                <div className="max-h-64 overflow-y-auto">
+                  {renderCategoryList('personal', storedCategories.categories.personal)}
+                </div>
+              </div>
             </div>
           </div>
         </div>

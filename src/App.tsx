@@ -474,7 +474,7 @@ export default function App() {
             
             <div className="mb-4">
               <label className="block text-sm font-medium text-neutral-700 mb-1">Activity Type</label>
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-64 overflow-y-auto">
                 <div>
                   <h3 className="text-sm font-medium text-neutral-600 mb-2">Work Activities</h3>
                   <div className="flex flex-wrap gap-2">
