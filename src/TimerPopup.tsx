@@ -7,6 +7,22 @@ const TimerPopup: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const lastMsgRef = useRef<{ revision: number; timestamp: number }>({ revision: 0, timestamp: 0 });
 
+  // Load selected category from localStorage on mount so the popup
+  // reflects the current selection immediately when opened
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('timerState');
+      if (saved) {
+        const parsed = JSON.parse(saved) as { selectedCategory?: string | null };
+        if (parsed && typeof parsed.selectedCategory !== 'undefined') {
+          setSelectedCategory(parsed.selectedCategory ?? null);
+        }
+      }
+    } catch {
+      // ignore JSON parse or storage errors
+    }
+  }, []);
+
   const handleMessage = (msg: TimerSyncMessage) => {
     const last = lastMsgRef.current;
     if (msg.revision < last.revision || (msg.revision === last.revision && msg.timestamp <= last.timestamp)) {
