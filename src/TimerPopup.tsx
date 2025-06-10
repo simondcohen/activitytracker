@@ -104,7 +104,8 @@ const TimerPopup: React.FC = () => {
         onSave={handleSaveActivity}
         selectedCategory={selectedCategory}
         widgetMode={true}
-        manageStorage={false}
+        readFromStorage={true}
+        writeToStorage={false}
       />
     </div>
   );
