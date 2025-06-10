@@ -1,100 +1,27 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Timer } from './components/Timer';
 import { Activity } from './types';
+import { initTimerSync, addTimerSyncListener, TimerSyncMessage } from './utils/timerSync';
 
 const TimerPopup: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const intervalRef = useRef<number | null>(null);
-  const lastKnownCategory = useRef<string | null>(null);
+  const lastMsgRef = useRef<{ revision: number; timestamp: number }>({ revision: 0, timestamp: 0 });
 
-  // Helper to read selected category from timerState in localStorage
-  const loadCategory = () => {
-    const savedTimer = localStorage.getItem('timerState');
-    let categoryFromStorage: string | null = null;
-    
-    if (savedTimer) {
-      try {
-        const timerState = JSON.parse(savedTimer);
-        categoryFromStorage = timerState.selectedCategory || null;
-      } catch {
-        categoryFromStorage = null;
-      }
+  const handleMessage = (msg: TimerSyncMessage) => {
+    const last = lastMsgRef.current;
+    if (msg.revision < last.revision || (msg.revision === last.revision && msg.timestamp <= last.timestamp)) {
+      return;
     }
-    
-    // Only update state if the category has actually changed
-    if (categoryFromStorage !== lastKnownCategory.current) {
-      lastKnownCategory.current = categoryFromStorage;
-      setSelectedCategory(categoryFromStorage);
-    }
-    
-    return categoryFromStorage;
-  };
-
-  // Periodic sync check - runs every 500ms while popup is open
-  const startPeriodicSync = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    
-    intervalRef.current = setInterval(() => {
-      loadCategory();
-    }, 500);
-  };
-
-  const stopPeriodicSync = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    lastMsgRef.current = { revision: msg.revision, timestamp: msg.timestamp };
+    if (msg.type === 'category-update') {
+      setSelectedCategory(msg.payload.selectedCategory ?? null);
     }
   };
 
   useEffect(() => {
-    // Initial load
-    loadCategory();
-    
-    // Start periodic sync
-    startPeriodicSync();
-    
-    // Listen for storage events (backup mechanism)
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'timerState') {
-        loadCategory();
-      }
-    };
-    
-    // Listen for window focus events to ensure sync when user switches between windows
-    const handleFocus = () => {
-      loadCategory();
-    };
-    
-    // Listen for visibility change (when tab becomes visible)
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        loadCategory();
-      }
-    };
-    
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Cleanup function
-    return () => {
-      stopPeriodicSync();
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-
-  // Also check for category changes when the window becomes visible or gets focus
-  useEffect(() => {
-    const handlePageShow = () => {
-      loadCategory();
-    };
-    
-    window.addEventListener('pageshow', handlePageShow);
-    return () => window.removeEventListener('pageshow', handlePageShow);
+    initTimerSync();
+    const unsub = addTimerSyncListener(handleMessage);
+    return () => unsub();
   }, []);
 
   const handleSaveActivity = (
@@ -157,7 +84,7 @@ const TimerPopup: React.FC = () => {
           Please select a category in the main window
         </div>
       )}
-      <Timer onSave={handleSaveActivity} selectedCategory={selectedCategory} manageStorage={false} />
+      <Timer onSave={handleSaveActivity} selectedCategory={selectedCategory} />
     </div>
   );
 };
