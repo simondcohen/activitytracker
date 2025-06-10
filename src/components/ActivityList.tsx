@@ -35,7 +35,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
   storedCategories
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
+  const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
     id: string;
     category: string;
@@ -96,12 +96,8 @@ export const ActivityList: React.FC<ActivityListProps> = ({
     setEditForm(null);
   };
 
-  const handleViewNotes = (activityId: string) => {
-    setSelectedActivityId(activityId);
-  };
-
-  const handleCloseNotes = () => {
-    setSelectedActivityId(null);
+  const toggleNotes = (activityId: string) => {
+    setExpandedActivityId(prev => (prev === activityId ? null : activityId));
   };
 
   const handleAddEmptyNote = (activity: Activity) => {
@@ -111,35 +107,16 @@ export const ActivityList: React.FC<ActivityListProps> = ({
       content: '',
       timestamp: new Date().toISOString()
     };
-    
-    // Add the note to the activity
-    const updatedActivity: Activity = {
-      ...activity,
-      notes: [...(activity.notes || []), newNote]
-    };
-    
-    // Update the activity and open the notes modal
-    onUpdateActivity(updatedActivity);
-    setSelectedActivityId(activity.id);
-  };
 
-  // Dedicated function for adding a note from the modal
-  const handleAddNoteFromModal = (activity: Activity) => {
-    // Create a new empty note
-    const newNote: Note = {
-      id: crypto.randomUUID(),
-      content: '',
-      timestamp: new Date().toISOString()
-    };
-    
     // Add the note to the activity
     const updatedActivity: Activity = {
       ...activity,
       notes: [...(activity.notes || []), newNote]
     };
-    
-    // Update the activity without reopening the modal
+
+    // Update the activity and expand notes view
     onUpdateActivity(updatedActivity);
+    setExpandedActivityId(activity.id);
   };
 
   const handleUpdateNote = (activityId: string, noteId: string, content: string) => {
@@ -172,11 +149,6 @@ export const ActivityList: React.FC<ActivityListProps> = ({
     onUpdateActivity(updatedActivity);
   };
 
-  const handleModalClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      handleCloseNotes();
-    }
-  };
 
   // Calculate daily totals by grouping activities of the same day
   // Note: Days are considered to start at 4am rather than midnight,
@@ -220,7 +192,6 @@ export const ActivityList: React.FC<ActivityListProps> = ({
     new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
 
-  const selectedActivity = selectedActivityId ? activities.find(a => a.id === selectedActivityId) : null;
 
   return (
     <div>
@@ -307,14 +278,22 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                       </div>
                       
                       {activity.notes && activity.notes.length > 0 ? (
-                        <button 
-                          className="text-xs text-primary-600 hover:text-primary-800 mt-1 flex items-center"
-                          onClick={() => handleViewNotes(activity.id)}
+                        <button
+                          className="text-xs text-primary-600 hover:text-primary-800 mt-1 flex items-center gap-1"
+                          onClick={() => toggleNotes(activity.id)}
                         >
-                          {activity.notes.length} {activity.notes.length === 1 ? 'note' : 'notes'}
+                          <MessageSquare size={12} />
+                          <span>
+                            {activity.notes.length} {activity.notes.length === 1 ? 'note' : 'notes'}
+                          </span>
+                          {expandedActivityId !== activity.id && (
+                            <span className="ml-1 text-neutral-500 truncate max-w-xs">
+                              • {activity.notes.slice(0, 2).map(n => n.content).join(', ')}
+                            </span>
+                          )}
                         </button>
                       ) : (
-                        <button 
+                        <button
                           className="text-xs text-primary-600 hover:text-primary-800 mt-1 flex items-center gap-1"
                           onClick={() => handleAddEmptyNote(activity)}
                         >
@@ -335,7 +314,7 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                             <Pencil size={16} />
                           </button>
                           <button
-                            onClick={() => handleViewNotes(activity.id)}
+                            onClick={() => toggleNotes(activity.id)}
                             className="p-1 text-neutral-500 hover:text-neutral-700 rounded-full hover:bg-neutral-100"
                             title="Add note"
                           >
@@ -421,6 +400,49 @@ export const ActivityList: React.FC<ActivityListProps> = ({
                       </div>
                     </div>
                   )}
+
+                  {expandedActivityId === activity.id && (
+                    <div className="mt-3 space-y-3 animate-fade-in">
+                      {activity.notes && activity.notes.length > 0 ? (
+                        activity.notes.map(note => (
+                          <div
+                            key={note.id}
+                            className="p-3 bg-neutral-50 border border-neutral-200 rounded-md"
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs text-neutral-500">
+                                {format(new Date(note.timestamp), 'MMM d, h:mm a')}
+                              </span>
+                              <button
+                                onClick={() => handleDeleteNote(activity.id, note.id)}
+                                className="text-neutral-400 hover:text-neutral-600"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                            <textarea
+                              className="w-full text-sm border border-neutral-300 rounded-md p-2 resize-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                              value={note.content}
+                              onChange={e =>
+                                handleUpdateNote(activity.id, note.id, e.target.value)
+                              }
+                              rows={4}
+                              placeholder="Write your note here..."
+                            />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm text-neutral-500">No notes yet.</div>
+                      )}
+                      <button
+                        onClick={() => handleAddEmptyNote(activity)}
+                        className="btn btn-primary text-sm flex items-center gap-1"
+                      >
+                        <Plus size={14} />
+                        <span>Add Note</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             } else {
@@ -438,71 +460,6 @@ export const ActivityList: React.FC<ActivityListProps> = ({
         )}
       </div>
       
-      {selectedActivityId && selectedActivity && (
-        <div 
-          className="fixed inset-0 bg-neutral-900 bg-opacity-50 flex items-center justify-center p-4 z-50"
-          onClick={handleModalClick}
-        >
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center p-4 border-b border-neutral-200">
-              <h3 className="font-medium text-lg">Notes for {selectedActivity.category}</h3>
-              <div className="flex items-center space-x-2">
-                <button 
-                  onClick={handleCloseNotes}
-                  className="text-neutral-500 hover:text-neutral-700 p-1 rounded-full hover:bg-neutral-100"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-6">
-              {selectedActivity.notes && selectedActivity.notes.length > 0 ? (
-                <div className="space-y-4">
-                  {selectedActivity.notes.map(note => (
-                    <div key={note.id} className="p-4 bg-neutral-50 rounded-lg border border-neutral-200 shadow-sm">
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="text-sm text-neutral-500">
-                          {format(new Date(note.timestamp), 'MMM d, yyyy h:mm a')}
-                        </div>
-                        <button
-                          onClick={() => handleDeleteNote(selectedActivity.id, note.id)}
-                          className="text-neutral-400 hover:text-neutral-600"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                      
-                      <textarea
-                        className="w-full p-3 border border-neutral-300 rounded-md text-base font-normal leading-relaxed focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        value={note.content}
-                        onChange={(e) => handleUpdateNote(selectedActivity.id, note.id, e.target.value)}
-                        rows={8}
-                        style={{ minHeight: "120px" }}
-                        placeholder="Write your note here..."
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-neutral-500">
-                  <p>No notes yet. Add your first note below.</p>
-                </div>
-              )}
-            </div>
-            
-            <div className="p-4 border-t border-neutral-200 bg-neutral-50">
-              <button
-                onClick={() => handleAddNoteFromModal(selectedActivity)}
-                className="btn btn-primary w-full py-3 flex items-center justify-center gap-2 text-base"
-              >
-                <Plus size={18} />
-                <span>Add New Note</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
