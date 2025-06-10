@@ -324,7 +324,7 @@ export default function App() {
   const validateImportedData = (data: unknown): boolean => {
     if (!data || typeof data !== 'object') return false;
     
-    const dataObj = data as Record<string, any>;
+    const dataObj = data as Record<string, unknown>;
 
     if (!dataObj.activities || !Array.isArray(dataObj.activities)) {
       console.error('Invalid or missing activities array');
@@ -391,7 +391,7 @@ export default function App() {
 
       localStorage.clear();
 
-      const dataObj = data as Record<string, any>;
+      const dataObj = data as Record<string, unknown>;
       
       // Ensure each activity has a valid notes array before storing
       const validatedActivities = dataObj.activities.map((activity: Activity) => ({
