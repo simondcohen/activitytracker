@@ -568,10 +568,11 @@ export default function App() {
               <h2 className="text-lg font-medium text-neutral-800">Timer</h2>
               <button
                 onClick={handleOpenPopup}
-                className="btn-secondary text-sm flex items-center"
+                className="btn-icon bg-accent-50 text-accent-600 hover:bg-accent-100 flex items-center gap-2 px-3 py-2 transition-all duration-200 hover:shadow-md border border-accent-200 hover:border-accent-300"
                 title="Open timer in floating window"
               >
                 <ExternalLink size={16} />
+                <span className="font-medium">Popup</span>
               </button>
             </div>
             
