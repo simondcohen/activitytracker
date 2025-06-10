@@ -294,8 +294,10 @@ export default function App() {
 
   const validateImportedData = (data: unknown): boolean => {
     if (!data || typeof data !== 'object') return false;
+    
+    const dataObj = data as Record<string, any>;
 
-    if (!data.activities || !Array.isArray(data.activities)) {
+    if (!dataObj.activities || !Array.isArray(dataObj.activities)) {
       console.error('Invalid or missing activities array');
       return false;
     }
@@ -306,7 +308,7 @@ export default function App() {
       return isValid(parsed);
     };
 
-    for (const activity of data.activities) {
+    for (const activity of dataObj.activities) {
       if (
         !activity.id ||
         !activity.category ||
@@ -324,13 +326,13 @@ export default function App() {
       }
     }
 
-    if (data.timestampEvents) {
-      if (!Array.isArray(data.timestampEvents)) {
+    if (dataObj.timestampEvents) {
+      if (!Array.isArray(dataObj.timestampEvents)) {
         console.error('Invalid timestampEvents format');
         return false;
       }
 
-      for (const event of data.timestampEvents) {
+      for (const event of dataObj.timestampEvents) {
         if (!event.id || !event.name || !event.timestamp) {
           console.error('Invalid timestamp event:', event);
           return false;
@@ -360,23 +362,25 @@ export default function App() {
 
       localStorage.clear();
 
+      const dataObj = data as Record<string, any>;
+      
       // Ensure each activity has a valid notes array before storing
-      const validatedActivities = data.activities.map((activity: Activity) => ({
+      const validatedActivities = dataObj.activities.map((activity: Activity) => ({
         ...activity,
         notes: Array.isArray(activity.notes) ? activity.notes : []
       }));
 
       // Validate and restore timestamp events if present
-      const validatedTimestampEvents = Array.isArray(data.timestampEvents)
-        ? data.timestampEvents.map((event: TimestampEvent) => ({ ...event }))
+      const validatedTimestampEvents = Array.isArray(dataObj.timestampEvents)
+        ? dataObj.timestampEvents.map((event: TimestampEvent) => ({ ...event }))
         : [];
 
       localStorage.setItem('activities', JSON.stringify(validatedActivities));
       localStorage.setItem('timestampEvents', JSON.stringify(validatedTimestampEvents));
 
-      if (data.categories) {
-        saveCategories(data.categories);
-        setStoredCategories(data.categories);
+      if (dataObj.categories) {
+        saveCategories(dataObj.categories);
+        setStoredCategories(dataObj.categories);
       }
 
       setActivities(validatedActivities);
@@ -408,14 +412,16 @@ export default function App() {
     try {
       const savedTimer = localStorage.getItem('timerState');
       const timerState = savedTimer ? JSON.parse(savedTimer) : {};
+      const now = new Date();
       localStorage.setItem(
         'timerState',
         JSON.stringify({
           ...timerState,
           selectedCategory: category,
           isRunning: timerState.isRunning ?? false,
-          startTime: timerState.startTime ?? toISO(new Date()),
-          lastCheckpoint: timerState.lastCheckpoint ?? toISO(new Date())
+          startTime: timerState.startTime ?? toISO(now),
+          lastCheckpoint: timerState.lastCheckpoint ?? toISO(now),
+          lastCategoryUpdate: now.getTime() // Add timestamp for better sync detection
         })
       );
     } catch {
