@@ -7,7 +7,7 @@ import { ExportOptionsForm } from './components/ExportOptionsForm';
 import { Activity, StoredCategories, Note, TimestampEvent } from './types';
 import { loadStoredCategories, saveCategories } from './utils';
 import { toISO, isSameDay, getTodayISO } from './dateHelpers';
-import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2, Clipboard, MoreHorizontal, Flag, Check, X, Pencil } from 'lucide-react';
+import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2, Clipboard, MoreHorizontal, Flag, Check, X, Pencil, ExternalLink } from 'lucide-react';
 import { format, subDays, addDays, parseISO, isValid } from 'date-fns';
 import { ImportJsonForm } from './components/ImportJsonForm';
 import { TimestampEventForm } from './components/TimestampEventForm';
@@ -404,14 +404,22 @@ export default function App() {
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-    // Update timer state with the new category
-    const savedTimer = localStorage.getItem('timerState');
-    if (savedTimer) {
-      const timerState = JSON.parse(savedTimer);
-      localStorage.setItem('timerState', JSON.stringify({
-        ...timerState,
-        selectedCategory: category
-      }));
+    // Update timer state with the new category for popup sync
+    try {
+      const savedTimer = localStorage.getItem('timerState');
+      const timerState = savedTimer ? JSON.parse(savedTimer) : {};
+      localStorage.setItem(
+        'timerState',
+        JSON.stringify({
+          ...timerState,
+          selectedCategory: category,
+          isRunning: timerState.isRunning ?? false,
+          startTime: timerState.startTime ?? toISO(new Date()),
+          lastCheckpoint: timerState.lastCheckpoint ?? toISO(new Date())
+        })
+      );
+    } catch {
+      // ignore storage errors
     }
   };
 
@@ -446,6 +454,12 @@ export default function App() {
   };
 
   const handleOpenPopup = () => {
+    // Check if popup already exists and isn't closed
+    if (popupRef.current && !popupRef.current.closed) {
+      popupRef.current.focus();
+      return;
+    }
+
     const bounds = localStorage.getItem('popupBounds');
     let specs = 'width=400,height=500';
     if (bounds) {
@@ -518,7 +532,13 @@ export default function App() {
           <div className="card p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-medium text-neutral-800">Timer</h2>
-              <button onClick={handleOpenPopup} className="btn-secondary text-sm" title="Open timer popup">Popup</button>
+              <button
+                onClick={handleOpenPopup}
+                className="btn-secondary text-sm flex items-center"
+                title="Open timer in floating window"
+              >
+                <ExternalLink size={16} />
+              </button>
             </div>
             
             <div className="mb-4">

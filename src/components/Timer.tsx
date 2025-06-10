@@ -52,17 +52,13 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
 
   // Save timer state to localStorage whenever it changes
   useEffect(() => {
-    if (isRunning) {
-      const timerState: TimerState = {
-        isRunning,
-        startTime,
-        lastCheckpoint: new Date().toISOString(),
-        selectedCategory
-      };
-      localStorage.setItem('timerState', JSON.stringify(timerState));
-    } else {
-      localStorage.removeItem('timerState');
-    }
+    const timerState: TimerState = {
+      isRunning,
+      startTime,
+      lastCheckpoint: new Date().toISOString(),
+      selectedCategory
+    };
+    localStorage.setItem('timerState', JSON.stringify(timerState));
   }, [isRunning, startTime, selectedCategory]);
 
   useEffect(() => {
