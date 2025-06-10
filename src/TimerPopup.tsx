@@ -74,9 +74,9 @@ const TimerPopup: React.FC = () => {
   }, []);
 
   return (
-    <div className="p-4 w-full h-full flex flex-col items-center justify-center space-y-4 min-w-[300px]">
+    <div className="w-full h-full flex flex-col items-center justify-center space-y-4 min-w-[300px] widget-mode">
       {selectedCategory ? (
-        <div className="text-lg font-semibold text-center">
+        <div className="text-lg font-semibold text-center category-display">
           {selectedCategory}
         </div>
       ) : (
@@ -84,7 +84,11 @@ const TimerPopup: React.FC = () => {
           Please select a category in the main window
         </div>
       )}
-      <Timer onSave={handleSaveActivity} selectedCategory={selectedCategory} />
+      <Timer
+        onSave={handleSaveActivity}
+        selectedCategory={selectedCategory}
+        widgetMode={true}
+      />
     </div>
   );
 };

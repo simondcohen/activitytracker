@@ -12,6 +12,7 @@ import {
 interface TimerProps {
   onSave: (duration: number, startTime: string, endTime: string) => void;
   selectedCategory: string | null;
+  widgetMode?: boolean;
 }
 
 interface TimerState {
@@ -21,7 +22,11 @@ interface TimerState {
   selectedCategory: string | null;
 }
 
-export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
+export const Timer: React.FC<TimerProps> = ({
+  onSave,
+  selectedCategory,
+  widgetMode = false
+}) => {
   const [isRunning, setIsRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [startTime, setStartTime] = useState(toISO(new Date()));
@@ -284,15 +289,17 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
   };
 
   return (
-    <div className="card mb-6">
-      <div className="text-neutral-600 text-center mb-2">
+    <div
+      className={`card mb-6 ${widgetMode ? 'border-none shadow-none p-0 mb-0 bg-transparent' : ''}`}
+    >
+      <div className="text-neutral-600 text-center mb-2 date-display">
         {currentDate}
       </div>
-      
-      <div className="text-5xl font-semibold text-center font-mono my-4 text-primary-700">
+
+      <div className="text-5xl font-semibold text-center font-mono my-4 text-primary-700 timer-display">
         {formatTime(seconds)}
       </div>
-      
+
       <div className="grid grid-cols-1 gap-4 mb-4">
         <div>
           <label className="block text-sm font-medium text-neutral-700 mb-1" htmlFor="startTime">
@@ -309,7 +316,7 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
         </div>
       </div>
 
-      <div className="flex justify-center space-x-3 mt-4">
+      <div className="flex justify-center space-x-3 mt-4 timer-controls">
         <button
           onClick={handleStartStop}
           disabled={!selectedCategory}
