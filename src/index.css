@@ -175,3 +175,28 @@ body:has(.widget-mode) {
     font-size: clamp(1.75rem, 14vw, 3rem);
   }
 }
+
+/* Compact horizontal widget overrides */
+.widget-mode {
+  @apply flex-row items-center justify-start h-12 px-3 bg-white border-b gap-3;
+}
+
+.widget-mode::before {
+  display: none;
+}
+
+.widget-mode .timer-display {
+  font-size: 1.25rem !important;
+}
+
+.widget-mode .date-display {
+  display: none !important;
+}
+
+.widget-mode input[type="datetime-local"] {
+  display: none !important;
+}
+
+.widget-mode .timer-controls button span {
+  display: none !important;
+}
