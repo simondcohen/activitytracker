@@ -298,10 +298,56 @@ export const Timer: React.FC<TimerProps> = ({
     }
   };
 
+  if (widgetMode) {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="text-base font-mono font-medium min-w-[3.5rem]">
+          {formatTime(seconds)}
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleStartStop}
+            disabled={!selectedCategory}
+            className="w-7 h-7 rounded border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center transition-colors"
+            style={{ padding: 0 }}
+          >
+            {isRunning ? <Pause size={14} /> : <Play size={14} />}
+          </button>
+          {isRunning && (
+            <button
+              onClick={handleStop}
+              className="w-7 h-7 rounded border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center transition-colors"
+              style={{ padding: 0 }}
+            >
+              <Square size={14} />
+            </button>
+          )}
+          {seconds > 0 && (
+            <>
+              <button
+                onClick={handleSave}
+                disabled={!selectedCategory}
+                className="w-7 h-7 rounded border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center transition-colors"
+                style={{ padding: 0 }}
+              >
+                <Save size={14} />
+              </button>
+              <button
+                onClick={handleClear}
+                className="w-7 h-7 rounded border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center transition-colors"
+                style={{ padding: 0 }}
+              >
+                <Trash2 size={14} />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={`card mb-6 ${widgetMode ? 'border-none shadow-none p-0 mb-0 bg-transparent' : ''}`}
-    >
+    <div className="card mb-6">
       <div className="text-neutral-600 text-center mb-2 date-display">
         {currentDate}
       </div>
@@ -330,9 +376,9 @@ export const Timer: React.FC<TimerProps> = ({
         <button
           onClick={handleStartStop}
           disabled={!selectedCategory}
-          className={`btn ${isRunning 
-            ? 'bg-primary-100 text-primary-800 hover:bg-primary-200' 
-            : 'btn-primary'} flex items-center justify-center gap-1`}
+          className={`btn ${
+            isRunning ? 'bg-primary-100 text-primary-800 hover:bg-primary-200' : 'btn-primary'
+          } flex items-center justify-center gap-1`}
         >
           {isRunning ? (
             <>
@@ -346,20 +392,20 @@ export const Timer: React.FC<TimerProps> = ({
             </>
           )}
         </button>
-        
+
         {isRunning && (
-          <button 
-            onClick={handleStop} 
+          <button
+            onClick={handleStop}
             className="btn bg-neutral-100 text-neutral-700 hover:bg-neutral-200 flex items-center justify-center gap-1"
           >
             <Square size={18} />
             <span>Stop</span>
           </button>
         )}
-        
+
         {seconds > 0 && (
-          <button 
-            onClick={handleSave} 
+          <button
+            onClick={handleSave}
             className="btn btn-primary flex items-center justify-center gap-1"
             disabled={!selectedCategory}
           >
@@ -367,10 +413,10 @@ export const Timer: React.FC<TimerProps> = ({
             <span>Save</span>
           </button>
         )}
-        
+
         {seconds > 0 && (
-          <button 
-            onClick={handleClear} 
+          <button
+            onClick={handleClear}
             className="btn bg-neutral-100 text-neutral-700 hover:bg-neutral-200 flex items-center justify-center gap-1"
           >
             <Trash2 size={18} />
@@ -378,7 +424,7 @@ export const Timer: React.FC<TimerProps> = ({
           </button>
         )}
       </div>
-      
+
       {!selectedCategory && (
         <div className="mt-3 text-sm text-neutral-600 text-center">
           Please select a category to start tracking
