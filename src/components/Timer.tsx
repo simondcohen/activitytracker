@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Save, Square, Trash2 } from 'lucide-react';
 import { formatTime } from '../utils';
 import { toISO, formatForDateTimeInput, parseFromDateTimeInput } from '../dateHelpers';
+import {
+  initTimerSync,
+  addTimerSyncListener,
+  broadcastTimerMessage,
+  TimerSyncMessage
+} from '../utils/timerSync';
 
 interface TimerProps {
   onSave: (duration: number, startTime: string, endTime: string) => void;
   selectedCategory: string | null;
-  manageStorage?: boolean; // Add this - defaults to true
 }
 
 interface TimerState {
@@ -16,17 +21,85 @@ interface TimerState {
   selectedCategory: string | null;
 }
 
-export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory, manageStorage = true }) => {
+export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [startTime, setStartTime] = useState(toISO(new Date()));
   const [startTimeLocal, setStartTimeLocal] = useState(formatForDateTimeInput(toISO(new Date())));
+  const revisionRef = useRef(0);
+  const lastMsgRef = useRef<{ revision: number; timestamp: number }>({ revision: 0, timestamp: 0 });
+
+  const sendMessage = (type: TimerSyncMessage['type'], payload: TimerSyncMessage['payload'] = {}) => {
+    const msg: TimerSyncMessage = {
+      type,
+      revision: revisionRef.current + 1,
+      timestamp: Date.now(),
+      payload
+    };
+    revisionRef.current += 1;
+    lastMsgRef.current = { revision: msg.revision, timestamp: msg.timestamp };
+    broadcastTimerMessage(msg);
+  };
+
+  const handleIncomingMessage = (msg: TimerSyncMessage) => {
+    const last = lastMsgRef.current;
+    if (
+      msg.revision < last.revision ||
+      (msg.revision === last.revision && msg.timestamp <= last.timestamp)
+    ) {
+      return;
+    }
+    lastMsgRef.current = { revision: msg.revision, timestamp: msg.timestamp };
+
+    switch (msg.type) {
+      case 'timer-start':
+        if (msg.payload.startTime) {
+          setStartTime(msg.payload.startTime);
+          setStartTimeLocal(formatForDateTimeInput(msg.payload.startTime));
+          const now = new Date();
+          const start = new Date(msg.payload.startTime);
+          if (!isNaN(start.getTime()) && !isNaN(now.getTime())) {
+            const diff = Math.floor((now.getTime() - start.getTime()) / 1000);
+            setSeconds(Math.max(0, diff));
+          }
+        }
+        setIsRunning(true);
+        break;
+      case 'timer-pause':
+        setIsRunning(false);
+        break;
+      case 'timer-stop':
+        setIsRunning(false);
+        break;
+      case 'timer-save':
+      case 'timer-clear':
+        setIsRunning(false);
+        setSeconds(0);
+        if (msg.payload.startTime) {
+          setStartTime(msg.payload.startTime);
+          setStartTimeLocal(formatForDateTimeInput(msg.payload.startTime));
+        } else {
+          const nowISO = toISO(new Date());
+          setStartTime(nowISO);
+          setStartTimeLocal(formatForDateTimeInput(nowISO));
+        }
+        break;
+      default:
+        break;
+    }
+  };
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
+
+  useEffect(() => {
+    initTimerSync();
+    const unsubscribe = addTimerSyncListener(handleIncomingMessage);
+    return () => unsubscribe();
+  }, []);
 
   // Load timer state from localStorage on component mount
   useEffect(() => {
@@ -53,8 +126,6 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory, manageSt
 
   // Save timer state to localStorage whenever it changes
   useEffect(() => {
-    if (!manageStorage) return; // Don't save if we're not managing storage
-    
     const timerState: TimerState = {
       isRunning,
       startTime,
@@ -62,7 +133,8 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory, manageSt
       selectedCategory
     };
     localStorage.setItem('timerState', JSON.stringify(timerState));
-  }, [isRunning, startTime, selectedCategory, manageStorage]);
+  }, [isRunning, startTime, selectedCategory]);
+
 
   useEffect(() => {
     let interval: number | undefined;
@@ -123,12 +195,17 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory, manageSt
           setSeconds(0);
         }
       }
+      setIsRunning(true);
+      sendMessage('timer-start', { isRunning: true, startTime });
+    } else {
+      setIsRunning(false);
+      sendMessage('timer-pause', { isRunning: false });
     }
-    setIsRunning(!isRunning);
   };
 
   const handleStop = () => {
     setIsRunning(false);
+    sendMessage('timer-stop', { isRunning: false });
   };
 
   const handleClear = () => {
@@ -142,6 +219,7 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory, manageSt
     setStartTime(nowISO);
     setStartTimeLocal(formatForDateTimeInput(nowISO));
     localStorage.removeItem('timerState');
+    sendMessage('timer-clear', { isRunning: false, startTime: nowISO });
   };
 
   const handleSave = () => {
@@ -164,6 +242,7 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory, manageSt
     setStartTime(nowISO);
     setStartTimeLocal(formatForDateTimeInput(nowISO));
     localStorage.removeItem('timerState');
+    sendMessage('timer-save', { isRunning: false, startTime: nowISO });
   };
 
   const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -198,6 +277,7 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory, manageSt
         const diffInSeconds = Math.floor((now.getTime() - start.getTime()) / 1000);
         setSeconds(Math.max(0, diffInSeconds));
       }
+      sendMessage('timer-start', { isRunning, startTime: timeISO });
     } catch (error) {
       console.error('Invalid date time input:', error);
     }

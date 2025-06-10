@@ -11,6 +11,12 @@ import { Plus, Download, Upload, Settings, ChevronLeft, ChevronRight, Trash2, Cl
 import { format, subDays, addDays, parseISO, isValid } from 'date-fns';
 import { ImportJsonForm } from './components/ImportJsonForm';
 import { TimestampEventForm } from './components/TimestampEventForm';
+import {
+  initTimerSync,
+  addTimerSyncListener,
+  broadcastTimerMessage,
+  TimerSyncMessage
+} from './utils/timerSync';
 
 export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
@@ -43,6 +49,37 @@ export default function App() {
   const [storedCategories, setStoredCategories] = useState<StoredCategories>(loadStoredCategories());
 
   const popupRef = useRef<Window | null>(null);
+  const revisionRef = useRef(0);
+  const lastMsgRef = useRef<{ revision: number; timestamp: number }>({ revision: 0, timestamp: 0 });
+
+  const sendMessage = (type: TimerSyncMessage['type'], payload: TimerSyncMessage['payload'] = {}) => {
+    const msg: TimerSyncMessage = {
+      type,
+      revision: revisionRef.current + 1,
+      timestamp: Date.now(),
+      payload
+    };
+    revisionRef.current += 1;
+    lastMsgRef.current = { revision: msg.revision, timestamp: msg.timestamp };
+    broadcastTimerMessage(msg);
+  };
+
+  const handleTimerMessage = (msg: TimerSyncMessage) => {
+    const last = lastMsgRef.current;
+    if (msg.revision < last.revision || (msg.revision === last.revision && msg.timestamp <= last.timestamp)) {
+      return;
+    }
+    lastMsgRef.current = { revision: msg.revision, timestamp: msg.timestamp };
+    if (msg.type === 'category-update') {
+      setSelectedCategory(msg.payload.selectedCategory ?? null);
+    }
+  };
+
+  useEffect(() => {
+    initTimerSync();
+    const unsub = addTimerSyncListener(handleTimerMessage);
+    return () => unsub();
+  }, []);
   
   const [activities, setActivities] = useState<Activity[]>(() => {
     try {
@@ -143,14 +180,6 @@ export default function App() {
           }
         } catch (err) {
           console.error('Error parsing activities from storage:', err);
-        }
-      }
-      if (e.key === 'timerState' && e.newValue) {
-        try {
-          const timerState = JSON.parse(e.newValue);
-          setSelectedCategory(timerState.selectedCategory || null);
-        } catch {
-          // ignore parse errors
         }
       }
     };
@@ -408,7 +437,6 @@ export default function App() {
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-    // Update timer state with the new category for popup sync
     try {
       const savedTimer = localStorage.getItem('timerState');
       const timerState = savedTimer ? JSON.parse(savedTimer) : {};
@@ -420,13 +448,13 @@ export default function App() {
           selectedCategory: category,
           isRunning: timerState.isRunning ?? false,
           startTime: timerState.startTime ?? toISO(now),
-          lastCheckpoint: timerState.lastCheckpoint ?? toISO(now),
-          lastCategoryUpdate: now.getTime() // Add timestamp for better sync detection
+          lastCheckpoint: timerState.lastCheckpoint ?? toISO(now)
         })
       );
     } catch {
       // ignore storage errors
     }
+    sendMessage('category-update', { selectedCategory: category });
   };
 
   // Filter activities to show only those for the selected day
