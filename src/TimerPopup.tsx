@@ -157,7 +157,7 @@ const TimerPopup: React.FC = () => {
           Please select a category in the main window
         </div>
       )}
-      <Timer onSave={handleSaveActivity} selectedCategory={selectedCategory} />
+      <Timer onSave={handleSaveActivity} selectedCategory={selectedCategory} manageStorage={false} />
     </div>
   );
 };

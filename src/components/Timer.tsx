@@ -6,6 +6,7 @@ import { toISO, formatForDateTimeInput, parseFromDateTimeInput } from '../dateHe
 interface TimerProps {
   onSave: (duration: number, startTime: string, endTime: string) => void;
   selectedCategory: string | null;
+  manageStorage?: boolean; // Add this - defaults to true
 }
 
 interface TimerState {
@@ -15,7 +16,7 @@ interface TimerState {
   selectedCategory: string | null;
 }
 
-export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
+export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory, manageStorage = true }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [startTime, setStartTime] = useState(toISO(new Date()));
@@ -52,6 +53,8 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
 
   // Save timer state to localStorage whenever it changes
   useEffect(() => {
+    if (!manageStorage) return; // Don't save if we're not managing storage
+    
     const timerState: TimerState = {
       isRunning,
       startTime,
@@ -59,7 +62,7 @@ export const Timer: React.FC<TimerProps> = ({ onSave, selectedCategory }) => {
       selectedCategory
     };
     localStorage.setItem('timerState', JSON.stringify(timerState));
-  }, [isRunning, startTime, selectedCategory]);
+  }, [isRunning, startTime, selectedCategory, manageStorage]);
 
   useEffect(() => {
     let interval: number | undefined;
