@@ -494,16 +494,9 @@ export default function App() {
       return;
     }
 
-    const bounds = localStorage.getItem('popupBounds');
-    let specs = 'width=400,height=500';
-    if (bounds) {
-      try {
-        const b = JSON.parse(bounds);
-        specs = `width=${b.width || 400},height=${b.height || 500},left=${b.left || 0},top=${b.top || 0}`;
-      } catch {
-        // ignore parse errors
-      }
-    }
+    // Always use compact size, ignore saved bounds
+    const specs = 'width=350,height=80';
+    
     const win = window.open('/popup', 'timerPopup', specs);
     if (win) {
       popupRef.current = win;
