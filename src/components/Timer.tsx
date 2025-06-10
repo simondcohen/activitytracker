@@ -300,86 +300,98 @@ export const Timer: React.FC<TimerProps> = ({
 
   return (
     <div
-      className={`card mb-6 ${widgetMode ? 'border-none shadow-none p-0 mb-0 bg-transparent' : ''}`}
+      className={`${
+        widgetMode
+          ? 'flex items-center gap-2 m-0 p-0 bg-transparent'
+          : 'card mb-6'
+      }`}
     >
-      <div className="text-neutral-600 text-center mb-2 date-display">
-        {currentDate}
-      </div>
+      {!widgetMode && (
+        <div className="text-neutral-600 text-center mb-2 date-display">
+          {currentDate}
+        </div>
+      )}
 
-      <div className="text-5xl font-semibold text-center font-mono my-4 text-primary-700 timer-display">
+      <div
+        className={`font-mono timer-display ${widgetMode ? 'text-xl' : 'text-5xl font-semibold text-center my-4 text-primary-700'}`}
+      >
         {formatTime(seconds)}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 mb-4">
-        <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-1" htmlFor="startTime">
-            Start Time
-          </label>
-          <input
-            type="datetime-local"
-            id="startTime"
-            className="input"
-            value={startTimeLocal}
-            onChange={handleStartTimeChange}
-            disabled={isRunning}
-          />
+      {!widgetMode && (
+        <div className="grid grid-cols-1 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 mb-1" htmlFor="startTime">
+              Start Time
+            </label>
+            <input
+              type="datetime-local"
+              id="startTime"
+              className="input"
+              value={startTimeLocal}
+              onChange={handleStartTimeChange}
+              disabled={isRunning}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="flex justify-center space-x-3 mt-4 timer-controls">
+      <div className={`flex ${widgetMode ? 'items-center gap-2' : 'justify-center space-x-3 mt-4'} timer-controls`}>
         <button
           onClick={handleStartStop}
           disabled={!selectedCategory}
-          className={`btn ${isRunning 
-            ? 'bg-primary-100 text-primary-800 hover:bg-primary-200' 
-            : 'btn-primary'} flex items-center justify-center gap-1`}
+          className={`btn ${
+            isRunning
+              ? 'bg-primary-100 text-primary-800 hover:bg-primary-200'
+              : 'btn-primary'
+          } flex items-center justify-center gap-1`}
         >
           {isRunning ? (
             <>
               <Pause size={18} />
-              <span>Pause</span>
+              {!widgetMode && <span>Pause</span>}
             </>
           ) : (
             <>
               <Play size={18} />
-              <span>Start</span>
+              {!widgetMode && <span>Start</span>}
             </>
           )}
         </button>
-        
+
         {isRunning && (
-          <button 
-            onClick={handleStop} 
+          <button
+            onClick={handleStop}
             className="btn bg-neutral-100 text-neutral-700 hover:bg-neutral-200 flex items-center justify-center gap-1"
           >
             <Square size={18} />
-            <span>Stop</span>
+            {!widgetMode && <span>Stop</span>}
           </button>
         )}
-        
+
         {seconds > 0 && (
-          <button 
-            onClick={handleSave} 
+          <button
+            onClick={handleSave}
             className="btn btn-primary flex items-center justify-center gap-1"
             disabled={!selectedCategory}
           >
             <Save size={18} />
-            <span>Save</span>
+            {!widgetMode && <span>Save</span>}
           </button>
         )}
-        
+
         {seconds > 0 && (
-          <button 
-            onClick={handleClear} 
+          <button
+            onClick={handleClear}
             className="btn bg-neutral-100 text-neutral-700 hover:bg-neutral-200 flex items-center justify-center gap-1"
           >
             <Trash2 size={18} />
-            <span className="sr-only">Clear</span>
+            {!widgetMode && <span className="sr-only">Clear</span>}
           </button>
         )}
       </div>
-      
-      {!selectedCategory && (
+
+      {!widgetMode && !selectedCategory && (
         <div className="mt-3 text-sm text-neutral-600 text-center">
           Please select a category to start tracking
         </div>
