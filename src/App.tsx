@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Timer } from './components/Timer';
 import { ActivityList } from './components/ActivityList';
 import { ManualActivityForm } from './components/ManualActivityForm';
@@ -23,7 +23,15 @@ export default function App() {
   });
   const [customCategory, setCustomCategory] = useState('');
   const [currentNotes, setCurrentNotes] = useState('');
-  const [ongoingNotes, setOngoingNotes] = useState<Note[]>([]);
+  const [ongoingNotes, setOngoingNotes] = useState<Note[]>(() => {
+    try {
+      const saved = localStorage.getItem('ongoingNotes');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Error loading ongoing notes:', e);
+    }
+    return [];
+  });
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteContent, setEditingNoteContent] = useState('');
   const [selectedDate, setSelectedDate] = useState(getTodayISO());
@@ -33,6 +41,8 @@ export default function App() {
   const [showExportForm, setShowExportForm] = useState(false);
   const [showTimestampEventForm, setShowTimestampEventForm] = useState(false);
   const [storedCategories, setStoredCategories] = useState<StoredCategories>(loadStoredCategories());
+
+  const popupRef = useRef<Window | null>(null);
   
   const [activities, setActivities] = useState<Activity[]>(() => {
     try {
@@ -103,6 +113,50 @@ export default function App() {
       console.error('Error saving timestamp events to localStorage:', error);
     }
   }, [timestampEvents]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ongoingNotes', JSON.stringify(ongoingNotes));
+    } catch (error) {
+      console.error('Error saving ongoing notes to localStorage:', error);
+    }
+  }, [ongoingNotes]);
+
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'ongoingNotes') {
+        if (e.newValue) {
+          try {
+            setOngoingNotes(JSON.parse(e.newValue));
+          } catch (err) {
+            console.error('Error parsing ongoing notes from storage:', err);
+          }
+        } else {
+          setOngoingNotes([]);
+        }
+      }
+      if (e.key === 'activities' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setActivities(parsed);
+          }
+        } catch (err) {
+          console.error('Error parsing activities from storage:', err);
+        }
+      }
+      if (e.key === 'timerState' && e.newValue) {
+        try {
+          const timerState = JSON.parse(e.newValue);
+          setSelectedCategory(timerState.selectedCategory || null);
+        } catch {
+          // ignore parse errors
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const handleUpdateCategories = (newCategories: StoredCategories) => {
     setStoredCategories(newCategories);
@@ -380,43 +434,6 @@ export default function App() {
 
   const displayDate = format(parseISO(selectedDate), 'EEEE, MMMM d, yyyy');
 
-  const handleCopyDayToClipboard = () => {
-    const dataToExport = {
-      date: selectedDate,
-      activities: filteredActivities,
-      timestampEvents: filteredTimestampEvents,
-      exportTimestamp: new Date().toISOString()
-    };
-    
-    navigator.clipboard.writeText(JSON.stringify(dataToExport, null, 2))
-      .then(() => {
-        alert('Day activities and timestamp events copied to clipboard as JSON');
-      })
-      .catch((error) => {
-        console.error('Error copying to clipboard:', error);
-        alert('Failed to copy to clipboard');
-      });
-  };
-
-  const handleDownloadDayAsJson = () => {
-    const dataToExport = {
-      date: selectedDate,
-      activities: filteredActivities,
-      timestampEvents: filteredTimestampEvents,
-      exportTimestamp: new Date().toISOString()
-    };
-    
-    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    const formattedDate = format(parseISO(selectedDate), 'yyyy-MM-dd');
-    link.download = `activity-tracker-day-${formattedDate}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
 
   const handleImportActivities = (importedData: Activity[], importedTimestampEvents?: TimestampEvent[]) => {
     setActivities(prev => [...importedData, ...prev]);
@@ -427,6 +444,35 @@ export default function App() {
     
     setShowImportJsonForm(false);
   };
+
+  const handleOpenPopup = () => {
+    const bounds = localStorage.getItem('popupBounds');
+    let specs = 'width=400,height=500';
+    if (bounds) {
+      try {
+        const b = JSON.parse(bounds);
+        specs = `width=${b.width || 400},height=${b.height || 500},left=${b.left || 0},top=${b.top || 0}`;
+      } catch {
+        // ignore parse errors
+      }
+    }
+    const win = window.open('/popup', 'timerPopup', specs);
+    if (win) {
+      popupRef.current = win;
+    } else {
+      alert('Popup blocked');
+    }
+  };
+
+  useEffect(() => {
+    const handleUnload = () => {
+      if (popupRef.current && !popupRef.current.closed) {
+        popupRef.current.close();
+      }
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, []);
 
   return (
     <div className="min-h-screen bg-neutral-50 p-4">
@@ -470,7 +516,10 @@ export default function App() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Left panel - Timer */}
           <div className="card p-6">
-            <h2 className="text-lg font-medium text-neutral-800 mb-4">Timer</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-medium text-neutral-800">Timer</h2>
+              <button onClick={handleOpenPopup} className="btn-secondary text-sm" title="Open timer popup">Popup</button>
+            </div>
             
             <div className="mb-4">
               <label className="block text-sm font-medium text-neutral-700 mb-1">Activity Type</label>

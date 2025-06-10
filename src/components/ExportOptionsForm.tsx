@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Activity, StoredCategories, TimestampEvent } from '../types';
 import { format, parseISO } from 'date-fns';
 import { Check, Download, Clipboard, X } from 'lucide-react';
-import { getCategoryType } from '../utils';
 import { isSameDay } from '../dateHelpers';
 
 interface ExportOptionsFormProps {

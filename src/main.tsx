@@ -1,10 +1,14 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import TimerPopup from './TimerPopup';
 import './index.css';
 
-createRoot(document.getElementById('root')!).render(
+const rootEl = document.getElementById('root')!;
+const isPopup = window.location.pathname.startsWith('/popup');
+
+createRoot(rootEl).render(
   <StrictMode>
-    <App />
+    {isPopup ? <TimerPopup /> : <App />}
   </StrictMode>
 );

@@ -70,16 +70,6 @@ export const ImportJsonForm: React.FC<ImportJsonFormProps> = ({
     setJsonInput(JSON.stringify(exampleData, null, 2));
   }, [storedCategories]);
 
-  const handleCopyExample = () => {
-    navigator.clipboard.writeText(jsonInput)
-      .then(() => {
-        setShowCopied(true);
-        setTimeout(() => setShowCopied(false), 2000);
-      })
-      .catch(err => {
-        console.error('Failed to copy: ', err);
-      });
-  };
 
   // Helper function to validate ISO date strings
   const validateISODate = (dateString: string): boolean => {
