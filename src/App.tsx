@@ -226,7 +226,9 @@ export default function App() {
   };
 
   const handleDeleteNote = (noteId: string) => {
-    setOngoingNotes(prev => prev.filter(note => note.id !== noteId));
+    if (window.confirm('Are you sure you want to delete this note? This cannot be undone.')) {
+      setOngoingNotes(prev => prev.filter(note => note.id !== noteId));
+    }
   };
 
   const handleCancelEdit = () => {

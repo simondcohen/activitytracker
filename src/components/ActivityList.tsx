@@ -136,6 +136,10 @@ export const ActivityList: React.FC<ActivityListProps> = ({
   };
 
   const handleDeleteNote = (activityId: string, noteId: string) => {
+    if (!window.confirm('Are you sure you want to delete this note? This cannot be undone.')) {
+      return;
+    }
+
     const activity = activities.find(a => a.id === activityId);
     if (!activity || !activity.notes) return;
 

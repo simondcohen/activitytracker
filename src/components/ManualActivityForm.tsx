@@ -216,7 +216,11 @@ export const ManualActivityForm: React.FC<ManualActivityFormProps> = ({
                         <div className="text-sm text-neutral-700 mr-2 flex-1">{note.content}</div>
                         <button
                           type="button"
-                          onClick={() => setNotes(notes.filter(n => n.id !== note.id))}
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to delete this note? This cannot be undone.')) {
+                              setNotes(notes.filter(n => n.id !== note.id));
+                            }
+                          }}
                           className="text-neutral-400 hover:text-neutral-600"
                         >
                           <X size={14} />
