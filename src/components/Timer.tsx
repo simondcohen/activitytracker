@@ -298,6 +298,54 @@ export const Timer: React.FC<TimerProps> = ({
     }
   };
 
+  if (widgetMode) {
+    return (
+      <div className="flex items-center gap-2">
+        <div className="text-base font-mono font-medium min-w-[3.5rem]">
+          {formatTime(seconds)}
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleStartStop}
+            disabled={!selectedCategory}
+            className="w-7 h-7 rounded border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center transition-colors"
+            style={{ padding: 0 }}
+          >
+            {isRunning ? <Pause size={14} /> : <Play size={14} />}
+          </button>
+          {isRunning && (
+            <button
+              onClick={handleStop}
+              className="w-7 h-7 rounded border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center transition-colors"
+              style={{ padding: 0 }}
+            >
+              <Square size={14} />
+            </button>
+          )}
+          {seconds > 0 && (
+            <button
+              onClick={handleSave}
+              disabled={!selectedCategory}
+              className="w-7 h-7 rounded border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center transition-colors"
+              style={{ padding: 0 }}
+            >
+              <Save size={14} />
+            </button>
+          )}
+          {seconds > 0 && (
+            <button
+              onClick={handleClear}
+              className="w-7 h-7 rounded border border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center transition-colors"
+              style={{ padding: 0 }}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`${

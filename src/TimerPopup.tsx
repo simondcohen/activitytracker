@@ -90,19 +90,21 @@ const TimerPopup: React.FC = () => {
   }, []);
 
   return (
-    <div className="widget-mode flex items-center h-12 px-3 bg-white border-b gap-3 w-full min-w-[300px]">
-      {selectedCategory && (
-        <div className="text-sm font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded whitespace-nowrap">
-          {selectedCategory}
-        </div>
-      )}
-      <Timer
-        onSave={handleSaveActivity}
-        selectedCategory={selectedCategory}
-        widgetMode={true}
-        readFromStorage={true}
-        writeToStorage={false}
-      />
+    <div className="bg-white flex items-center px-3 shadow-sm" style={{ minHeight: '50px', maxHeight: '50px' }}>
+      <div className="flex items-center gap-3 w-full">
+        {selectedCategory && (
+          <div className="text-xs font-medium text-gray-600 bg-gray-50 px-2.5 py-1 rounded-sm">
+            {selectedCategory}
+          </div>
+        )}
+        <Timer
+          onSave={handleSaveActivity}
+          selectedCategory={selectedCategory}
+          widgetMode={true}
+          readFromStorage={true}
+          writeToStorage={false}
+        />
+      </div>
     </div>
   );
 };
