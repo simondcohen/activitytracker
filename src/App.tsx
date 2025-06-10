@@ -624,11 +624,7 @@ export default function App() {
               )}
             </div>
             
-            <Timer
-              onSave={handleSaveActivity}
-              selectedCategory={selectedCategory}
-            />
-            
+
             <div className="mt-4">
               <label className="block text-sm font-medium text-neutral-700 mb-1">
                 Notes
@@ -711,6 +707,11 @@ export default function App() {
                 )}
               </div>
             </div>
+
+            <Timer
+              onSave={handleSaveActivity}
+              selectedCategory={selectedCategory}
+            />
           </div>
           
           {/* Right panel - Activity History */}
