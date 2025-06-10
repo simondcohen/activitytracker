@@ -14,6 +14,8 @@ interface TimerProps {
   selectedCategory: string | null;
   widgetMode?: boolean;
   manageStorage?: boolean; // defaults to true
+  readFromStorage?: boolean;
+  writeToStorage?: boolean;
 }
 
 interface TimerState {
@@ -27,7 +29,9 @@ export const Timer: React.FC<TimerProps> = ({
   onSave,
   selectedCategory,
   widgetMode = false,
-  manageStorage = true
+  manageStorage = true,
+  readFromStorage = manageStorage,
+  writeToStorage = manageStorage
 }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -110,7 +114,7 @@ export const Timer: React.FC<TimerProps> = ({
 
   // Load timer state from localStorage on component mount
   useEffect(() => {
-    if (!manageStorage) return; // Add this line
+    if (!readFromStorage) return;
     
     const savedTimer = localStorage.getItem('timerState');
     if (savedTimer) {
@@ -131,11 +135,11 @@ export const Timer: React.FC<TimerProps> = ({
         }
       }
     }
-  }, [manageStorage]); // Add manageStorage to deps
+  }, [readFromStorage]);
 
   // Save timer state to localStorage whenever it changes
   useEffect(() => {
-    if (!manageStorage) return; // Add this line
+    if (!writeToStorage) return;
     
     const timerState: TimerState = {
       isRunning,
@@ -144,7 +148,7 @@ export const Timer: React.FC<TimerProps> = ({
       selectedCategory
     };
     localStorage.setItem('timerState', JSON.stringify(timerState));
-  }, [isRunning, startTime, selectedCategory, manageStorage]); // Add manageStorage to deps
+  }, [isRunning, startTime, selectedCategory, writeToStorage]);
 
 
   useEffect(() => {
