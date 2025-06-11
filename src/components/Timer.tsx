@@ -43,6 +43,7 @@ export const Timer: React.FC<TimerProps> = ({
   const lastMsgRef = useRef<{ revision: number; timestamp: number }>({ revision: 0, timestamp: 0 });
 
   useEffect(() => {
+    initTimerSync();
     revisionRef.current = getCurrentRevision();
   }, []);
 
@@ -118,7 +119,6 @@ export const Timer: React.FC<TimerProps> = ({
   });
 
   useEffect(() => {
-    initTimerSync();
     const unsubscribe = addTimerSyncListener(handleIncomingMessage);
     return () => unsubscribe();
   }, []);
