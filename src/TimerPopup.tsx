@@ -26,6 +26,7 @@ const TimerPopup: React.FC = () => {
     return [];
   });
   const [currentNote, setCurrentNote] = useState('');
+  const [showNoteInput, setShowNoteInput] = useState(false);
 
   const revisionRef = useRef(0);
   const lastMsgRef = useRef<{ revision: number; timestamp: number }>({ revision: 0, timestamp: 0 });
@@ -172,11 +173,9 @@ const TimerPopup: React.FC = () => {
     };
     setOngoingNotes(prev => [...prev, newNote]);
     setCurrentNote('');
+    setShowNoteInput(false);
   };
 
-  const handleDeleteNote = (id: string) => {
-    setOngoingNotes(prev => prev.filter(n => n.id !== id));
-  };
 
   // Remember window size/position
   useEffect(() => {
@@ -198,89 +197,95 @@ const TimerPopup: React.FC = () => {
   }, []);
 
   return (
-    <div className="bg-white p-3 shadow-sm space-y-3 w-full">
-      <div className="flex flex-wrap gap-2">
-        {storedCategories.categories.work.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => handleCategorySelect(cat)}
-            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-              selectedCategory === cat
-                ? 'bg-accent-600 text-white'
-                : 'bg-accent-100 text-accent-700 hover:bg-accent-200'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-        {storedCategories.categories.personal.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => handleCategorySelect(cat)}
-            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-              selectedCategory === cat
-                ? 'bg-primary-600 text-white'
-                : 'bg-primary-100 text-primary-700 hover:bg-primary-200'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
+    <div className="widget-mode flex gap-2 items-center">
+      <div className="flex items-center gap-1">
+        <select
+          className="text-xs border rounded px-1 py-0.5"
+          value={selectedCategory ?? ''}
+          onChange={(e) => handleCategorySelect(e.target.value)}
+        >
+          <option value="" disabled>
+            Select
+          </option>
+          <optgroup label="Work">
+            {storedCategories.categories.work.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Personal">
+            {storedCategories.categories.personal.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </optgroup>
+        </select>
+        {selectedCategory === 'Other' && (
+          <input
+            type="text"
+            value={customCategory}
+            onChange={(e) => setCustomCategory(e.target.value)}
+            placeholder="Custom"
+            className="text-xs border rounded px-1 py-0.5 w-24"
+          />
+        )}
       </div>
 
-      {selectedCategory === 'Other' && (
-        <input
-          type="text"
-          value={customCategory}
-          onChange={(e) => setCustomCategory(e.target.value)}
-          placeholder="Custom category"
-          className="input w-full text-xs"
-        />
-      )}
+      <Timer
+        onSave={handleSaveActivity}
+        selectedCategory={
+          selectedCategory === 'Other' ? customCategory || 'Other' : selectedCategory
+        }
+        widgetMode={true}
+        readFromStorage={true}
+        writeToStorage={true}
+      />
 
-      <div className="flex items-center gap-2">
-        <textarea
-          value={currentNote}
-          onChange={(e) => setCurrentNote(e.target.value)}
-          placeholder="Add note..."
-          className="flex-1 border border-neutral-300 rounded p-1 text-xs resize-none h-16"
-        />
-        <button
-          onClick={handleAddNote}
-          disabled={!currentNote.trim()}
-          className={`px-2 py-1 rounded ${currentNote.trim() ? 'bg-primary-600 text-white' : 'bg-neutral-200 text-neutral-400'}`}
-        >
-          Add
-        </button>
+      <div className="flex items-center gap-1">
+        {showNoteInput ? (
+          <>
+            <input
+              type="text"
+              value={currentNote}
+              onChange={(e) => setCurrentNote(e.target.value)}
+              placeholder="Note"
+              className="text-xs border rounded px-1 py-0.5 w-32"
+            />
+            <button
+              onClick={handleAddNote}
+              disabled={!currentNote.trim()}
+              className={`text-xs px-2 py-0.5 rounded ${currentNote.trim() ? 'bg-primary-600 text-white' : 'bg-neutral-200 text-neutral-400'}`}
+            >
+              Add
+            </button>
+            <button
+              onClick={() => {
+                setShowNoteInput(false);
+                setCurrentNote('');
+              }}
+              className="text-xs px-2 py-0.5 rounded bg-neutral-100 text-neutral-700"
+            >
+              ×
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setShowNoteInput(true)}
+            className="text-xs px-2 py-1 rounded bg-neutral-100 text-neutral-700"
+          >
+            Add Note
+          </button>
+        )}
       </div>
 
       {ongoingNotes.length > 0 && (
-        <div className="space-y-1 max-h-24 overflow-y-auto">
-          {ongoingNotes.map((note) => (
-            <div key={note.id} className="flex justify-between items-start text-xs bg-neutral-50 border border-neutral-200 p-1 rounded">
-              <div className="mr-2 flex-1">{note.content}</div>
-              <button onClick={() => handleDeleteNote(note.id)} className="text-neutral-400 hover:text-neutral-700">
-                ×
-              </button>
-            </div>
-          ))}
+        <div className="text-xs text-neutral-600 truncate max-w-[8rem]">
+          {ongoingNotes[ongoingNotes.length - 1].content}
+          {ongoingNotes.length > 1 && ` (+${ongoingNotes.length - 1})`}
         </div>
       )}
-
-      <div className="flex items-center gap-3">
-        {selectedCategory && (
-          <div className="text-xs font-medium text-gray-600 bg-gray-50 px-2.5 py-1 rounded-sm">
-            {selectedCategory}
-          </div>
-        )}
-        <Timer
-          onSave={handleSaveActivity}
-          selectedCategory={selectedCategory === 'Other' ? customCategory || 'Other' : selectedCategory}
-          widgetMode={true}
-          readFromStorage={true}
-          writeToStorage={true}
-        />
-      </div>
     </div>
   );
 };
