@@ -513,17 +513,7 @@ export default function App() {
       return;
     }
 
-    let specs = 'width=350,height=250';
-    try {
-      const saved = localStorage.getItem('popupBounds');
-      if (saved) {
-        const { width, height, left, top } = JSON.parse(saved);
-        specs = `width=${width},height=${height},left=${left},top=${top}`;
-      }
-    } catch {
-      // ignore
-    }
-
+    const specs = 'width=480,height=65';
     const win = window.open('/popup', 'timerPopup', specs);
     if (win) {
       popupRef.current = win;

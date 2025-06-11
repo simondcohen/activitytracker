@@ -176,26 +176,6 @@ const TimerPopup: React.FC = () => {
     setShowNoteInput(false);
   };
 
-
-  // Remember window size/position
-  useEffect(() => {
-    const handleUnload = () => {
-      try {
-        const data = {
-          width: window.outerWidth,
-          height: window.outerHeight,
-          left: window.screenX,
-          top: window.screenY
-        };
-        localStorage.setItem('popupBounds', JSON.stringify(data));
-      } catch {
-        // ignore errors
-      }
-    };
-    window.addEventListener('beforeunload', handleUnload);
-    return () => window.removeEventListener('beforeunload', handleUnload);
-  }, []);
-
   return (
     <div className="widget-mode flex gap-2 items-center">
       <div className="flex items-center gap-1">
