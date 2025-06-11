@@ -15,8 +15,11 @@ import {
   initTimerSync,
   addTimerSyncListener,
   broadcastTimerMessage,
-  TimerSyncMessage
+  TimerSyncMessage,
+  nextRevision,
+  getCurrentRevision
 } from './utils/timerSync';
+import { withActivitiesAtomic } from './utils/storage';
 
 export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(() => {
@@ -52,14 +55,22 @@ export default function App() {
   const revisionRef = useRef(0);
   const lastMsgRef = useRef<{ revision: number; timestamp: number }>({ revision: 0, timestamp: 0 });
 
-  const sendMessage = (type: TimerSyncMessage['type'], payload: TimerSyncMessage['payload'] = {}) => {
+  useEffect(() => {
+    revisionRef.current = getCurrentRevision();
+  }, []);
+
+  const sendMessage = (
+    type: TimerSyncMessage['type'],
+    payload: TimerSyncMessage['payload'] = {}
+  ) => {
+    const rev = nextRevision();
+    revisionRef.current = rev;
     const msg: TimerSyncMessage = {
       type,
-      revision: revisionRef.current + 1,
+      revision: rev,
       timestamp: Date.now(),
       payload
     };
-    revisionRef.current += 1;
     lastMsgRef.current = { revision: msg.revision, timestamp: msg.timestamp };
     broadcastTimerMessage(msg);
   };
@@ -70,6 +81,7 @@ export default function App() {
       return;
     }
     lastMsgRef.current = { revision: msg.revision, timestamp: msg.timestamp };
+    revisionRef.current = msg.revision;
     if (msg.type === 'category-update') {
       setSelectedCategory(msg.payload.selectedCategory ?? null);
     }
@@ -252,24 +264,30 @@ export default function App() {
     };
 
     setActivities(prev => [newActivity, ...prev]);
+    withActivitiesAtomic((acts) => [newActivity, ...acts]);
     setCurrentNotes('');
     setOngoingNotes([]);
   };
 
   const handleUpdateActivity = (updatedActivity: Activity) => {
-    setActivities(prev => 
-      prev.map(activity => 
+    setActivities(prev =>
+      prev.map(activity =>
         activity.id === updatedActivity.id ? updatedActivity : activity
       )
+    );
+    withActivitiesAtomic((acts) =>
+      acts.map((a) => (a.id === updatedActivity.id ? updatedActivity : a))
     );
   };
 
   const handleDeleteActivity = (id: string) => {
     setActivities(prev => prev.filter(activity => activity.id !== id));
+    withActivitiesAtomic((acts) => acts.filter((a) => a.id !== id));
   };
 
   const handleAddManualActivity = (activity: Activity) => {
     setActivities(prev => [activity, ...prev]);
+    withActivitiesAtomic((acts) => [activity, ...acts]);
     setShowManualForm(false);
   };
 
@@ -490,15 +508,22 @@ export default function App() {
   };
 
   const handleOpenPopup = () => {
-    // Check if popup already exists and isn't closed
     if (popupRef.current && !popupRef.current.closed) {
       popupRef.current.focus();
       return;
     }
 
-    // Always use compact size, ignore saved bounds
-    const specs = 'width=350,height=80';
-    
+    let specs = 'width=350,height=250';
+    try {
+      const saved = localStorage.getItem('popupBounds');
+      if (saved) {
+        const { width, height, left, top } = JSON.parse(saved);
+        specs = `width=${width},height=${height},left=${left},top=${top}`;
+      }
+    } catch {
+      // ignore
+    }
+
     const win = window.open('/popup', 'timerPopup', specs);
     if (win) {
       popupRef.current = win;
