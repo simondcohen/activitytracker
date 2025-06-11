@@ -15,7 +15,9 @@ import { withActivitiesAtomic } from './utils/storage';
 const TimerPopup: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [customCategory, setCustomCategory] = useState('');
-  const [storedCategories] = useState<StoredCategories>(loadStoredCategories());
+  const [storedCategories, setStoredCategories] = useState<StoredCategories>(
+    loadStoredCategories()
+  );
   const [ongoingNotes, setOngoingNotes] = useState<Note[]>(() => {
     try {
       const saved = localStorage.getItem('ongoingNotes');
@@ -31,6 +33,7 @@ const TimerPopup: React.FC = () => {
   const lastMsgRef = useRef<{ revision: number; timestamp: number }>({ revision: 0, timestamp: 0 });
 
   useEffect(() => {
+    initTimerSync();
     revisionRef.current = getCurrentRevision();
   }, []);
 
@@ -53,6 +56,13 @@ const TimerPopup: React.FC = () => {
           }
         } else {
           setOngoingNotes([]);
+        }
+      }
+      if (e.key === 'storedCategories' && e.newValue) {
+        try {
+          setStoredCategories(JSON.parse(e.newValue));
+        } catch {
+          // ignore
         }
       }
     };
@@ -89,7 +99,6 @@ const TimerPopup: React.FC = () => {
   };
 
   useEffect(() => {
-    initTimerSync();
     const unsub = addTimerSyncListener(handleMessage);
     return () => unsub();
   }, []);
@@ -130,15 +139,19 @@ const TimerPopup: React.FC = () => {
 
     const newActivity: Activity = {
       id: crypto.randomUUID(),
-      category: selectedCategory,
+      category:
+        selectedCategory === 'Other' ? customCategory || 'Other' : selectedCategory,
       startTime,
       endTime,
-      duration
+      duration,
+      notes: ongoingNotes
     };
 
     const updated = [newActivity, ...activities];
     localStorage.setItem('activities', JSON.stringify(updated));
     withActivitiesAtomic((acts) => [newActivity, ...acts]);
+    setOngoingNotes([]);
+    setCurrentNote('');
   };
 
   const handleCategorySelect = (category: string) => {

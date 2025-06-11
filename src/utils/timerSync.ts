@@ -43,6 +43,17 @@ function dispatch(msg: TimerSyncMessage) {
 }
 
 export function getCurrentRevision() {
+  if (currentRevision === 0) {
+    try {
+      const stored = localStorage.getItem(REVISION_KEY);
+      if (stored) {
+        const rev = parseInt(stored, 10);
+        if (!isNaN(rev)) currentRevision = rev;
+      }
+    } catch {
+      // ignore
+    }
+  }
   return currentRevision;
 }
 

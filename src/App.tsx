@@ -56,6 +56,7 @@ export default function App() {
   const lastMsgRef = useRef<{ revision: number; timestamp: number }>({ revision: 0, timestamp: 0 });
 
   useEffect(() => {
+    initTimerSync();
     revisionRef.current = getCurrentRevision();
   }, []);
 
@@ -88,7 +89,6 @@ export default function App() {
   };
 
   useEffect(() => {
-    initTimerSync();
     const unsub = addTimerSyncListener(handleTimerMessage);
     return () => unsub();
   }, []);

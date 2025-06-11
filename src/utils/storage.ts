@@ -17,14 +17,27 @@ export function withActivitiesAtomic(fn: (activities: Activity[]) => Activity[])
     } catch {
       // ignore
     }
+
     const updated = fn([...data]);
+
     try {
       localStorage.setItem(KEY, JSON.stringify(updated));
       localStorage.setItem(REV_KEY, String(rev + 1));
     } catch {
       // ignore
     }
-    const verify = parseInt(localStorage.getItem(REV_KEY) || '0', 10);
-    if (verify === rev + 1) return;
+
+    const verifyRev = parseInt(localStorage.getItem(REV_KEY) || '0', 10);
+    let verifyData: Activity[] = [];
+    try {
+      const saved = localStorage.getItem(KEY);
+      if (saved) verifyData = JSON.parse(saved) || [];
+    } catch {
+      // ignore
+    }
+
+    if (verifyRev === rev + 1 && JSON.stringify(verifyData) === JSON.stringify(updated)) {
+      return;
+    }
   }
 }
