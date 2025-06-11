@@ -11,11 +11,12 @@ import {
 } from './utils/timerSync';
 import { loadStoredCategories } from './utils';
 import { withActivitiesAtomic } from './utils/storage';
+import { toISO } from './dateHelpers';
 
 const TimerPopup: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [customCategory, setCustomCategory] = useState('');
-  const [storedCategories] = useState<StoredCategories>(loadStoredCategories());
+  const [storedCategories, setStoredCategories] = useState<StoredCategories>(loadStoredCategories());
   const [ongoingNotes, setOngoingNotes] = useState<Note[]>(() => {
     try {
       const saved = localStorage.getItem('ongoingNotes');
@@ -56,25 +57,35 @@ const TimerPopup: React.FC = () => {
           setOngoingNotes([]);
         }
       }
+      if (e.key === 'storedCategories' && e.newValue) {
+        try {
+          const newCategories = JSON.parse(e.newValue);
+          setStoredCategories(newCategories);
+        } catch {
+          // ignore
+        }
+      }
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  // Load selected category from localStorage on mount so the popup
-  // reflects the current selection immediately when opened
+  // Load selected category after sync is initialized
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('timerState');
-      if (saved) {
-        const parsed = JSON.parse(saved) as { selectedCategory?: string | null };
-        if (parsed && typeof parsed.selectedCategory !== 'undefined') {
-          setSelectedCategory(parsed.selectedCategory ?? null);
+    initTimerSync();
+    setTimeout(() => {
+      try {
+        const saved = localStorage.getItem('timerState');
+        if (saved) {
+          const parsed = JSON.parse(saved) as { selectedCategory?: string | null };
+          if (parsed && typeof parsed.selectedCategory !== 'undefined') {
+            setSelectedCategory(parsed.selectedCategory ?? null);
+          }
         }
+      } catch (e) {
+        console.error('Error loading timer state:', e);
       }
-    } catch {
-      // ignore JSON parse or storage errors
-    }
+    }, 100);
   }, []);
 
   const handleMessage = (msg: TimerSyncMessage) => {
@@ -92,6 +103,36 @@ const TimerPopup: React.FC = () => {
   useEffect(() => {
     initTimerSync();
     const unsub = addTimerSyncListener(handleMessage);
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const handleTimerSync = (msg: TimerSyncMessage) => {
+      const currentState = JSON.parse(localStorage.getItem('timerState') || '{}');
+      const newState = { ...currentState };
+
+      switch (msg.type) {
+        case 'category-update':
+          newState.selectedCategory = msg.payload.selectedCategory ?? null;
+          break;
+        case 'timer-start':
+          newState.isRunning = true;
+          newState.startTime = msg.payload.startTime;
+          break;
+        case 'timer-stop':
+        case 'timer-pause':
+          newState.isRunning = false;
+          break;
+        case 'timer-clear':
+        case 'timer-save':
+          newState.isRunning = false;
+          newState.startTime = msg.payload.startTime;
+          break;
+      }
+      newState.lastUpdate = Date.now();
+      localStorage.setItem('timerState', JSON.stringify(newState));
+    };
+    const unsub = addTimerSyncListener(handleTimerSync);
     return () => unsub();
   }, []);
 
@@ -144,23 +185,6 @@ const TimerPopup: React.FC = () => {
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-    try {
-      const savedTimer = localStorage.getItem('timerState');
-      const timerState = savedTimer ? JSON.parse(savedTimer) : {};
-      const now = new Date();
-      localStorage.setItem(
-        'timerState',
-        JSON.stringify({
-          ...timerState,
-          selectedCategory: category,
-          isRunning: timerState.isRunning ?? false,
-          startTime: timerState.startTime ?? now.toISOString(),
-          lastCheckpoint: timerState.lastCheckpoint ?? now.toISOString()
-        })
-      );
-    } catch {
-      // ignore
-    }
     sendMessage('category-update', { selectedCategory: category });
   };
 
@@ -169,7 +193,7 @@ const TimerPopup: React.FC = () => {
     const newNote: Note = {
       id: crypto.randomUUID(),
       content: currentNote,
-      timestamp: new Date().toISOString()
+      timestamp: toISO(new Date())
     };
     setOngoingNotes(prev => [...prev, newNote]);
     setCurrentNote('');

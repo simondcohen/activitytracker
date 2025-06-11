@@ -148,20 +148,7 @@ export const Timer: React.FC<TimerProps> = ({
     }
   }, [readFromStorage]);
 
-  // Save timer state to localStorage whenever it changes
-  useEffect(() => {
-    if (!writeToStorage) return;
-    
-    const timerState: TimerState = {
-      isRunning,
-      startTime,
-      lastCheckpoint: new Date().toISOString(),
-      selectedCategory
-    };
-    localStorage.setItem('timerState', JSON.stringify(timerState));
-  }, [isRunning, startTime, selectedCategory, writeToStorage]);
-
-
+  // Interval updates for running timer
   useEffect(() => {
     let interval: number | undefined;
     
@@ -244,7 +231,9 @@ export const Timer: React.FC<TimerProps> = ({
     const nowISO = toISO(new Date());
     setStartTime(nowISO);
     setStartTimeLocal(formatForDateTimeInput(nowISO));
-    localStorage.removeItem('timerState');
+    if (writeToStorage) {
+      localStorage.removeItem('timerState');
+    }
     sendMessage('timer-clear', { isRunning: false, startTime: nowISO });
   };
 
@@ -267,7 +256,9 @@ export const Timer: React.FC<TimerProps> = ({
     const nowISO = toISO(new Date());
     setStartTime(nowISO);
     setStartTimeLocal(formatForDateTimeInput(nowISO));
-    localStorage.removeItem('timerState');
+    if (writeToStorage) {
+      localStorage.removeItem('timerState');
+    }
     sendMessage('timer-save', { isRunning: false, startTime: nowISO });
   };
 

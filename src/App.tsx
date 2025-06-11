@@ -92,6 +92,36 @@ export default function App() {
     const unsub = addTimerSyncListener(handleTimerMessage);
     return () => unsub();
   }, []);
+
+  useEffect(() => {
+    const handleTimerSync = (msg: TimerSyncMessage) => {
+      const currentState = JSON.parse(localStorage.getItem('timerState') || '{}');
+      const newState = { ...currentState };
+
+      switch (msg.type) {
+        case 'category-update':
+          newState.selectedCategory = msg.payload.selectedCategory ?? null;
+          break;
+        case 'timer-start':
+          newState.isRunning = true;
+          newState.startTime = msg.payload.startTime;
+          break;
+        case 'timer-stop':
+        case 'timer-pause':
+          newState.isRunning = false;
+          break;
+        case 'timer-clear':
+        case 'timer-save':
+          newState.isRunning = false;
+          newState.startTime = msg.payload.startTime;
+          break;
+      }
+      newState.lastUpdate = Date.now();
+      localStorage.setItem('timerState', JSON.stringify(newState));
+    };
+    const unsub = addTimerSyncListener(handleTimerSync);
+    return () => unsub();
+  }, []);
   
   const [activities, setActivities] = useState<Activity[]>(() => {
     try {
@@ -457,23 +487,6 @@ export default function App() {
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-    try {
-      const savedTimer = localStorage.getItem('timerState');
-      const timerState = savedTimer ? JSON.parse(savedTimer) : {};
-      const now = new Date();
-      localStorage.setItem(
-        'timerState',
-        JSON.stringify({
-          ...timerState,
-          selectedCategory: category,
-          isRunning: timerState.isRunning ?? false,
-          startTime: timerState.startTime ?? toISO(now),
-          lastCheckpoint: timerState.lastCheckpoint ?? toISO(now)
-        })
-      );
-    } catch {
-      // ignore storage errors
-    }
     sendMessage('category-update', { selectedCategory: category });
   };
 
