@@ -1,5 +1,11 @@
 export interface TimerSyncMessage {
-  type: 'timer-start' | 'timer-stop' | 'timer-pause' | 'timer-save' | 'timer-clear' | 'category-update';
+  type:
+    | 'timer-start'
+    | 'timer-stop'
+    | 'timer-pause'
+    | 'timer-save'
+    | 'timer-clear'
+    | 'category-update';
   revision: number;
   timestamp: number;
   payload: {
@@ -13,10 +19,12 @@ export type TimerSyncListener = (msg: TimerSyncMessage) => void;
 
 const CHANNEL_NAME = 'activity-tracker-timer';
 const STORAGE_KEY = 'activity-tracker-timer-fallback';
+const REVISION_KEY = 'activity-tracker-timer-revision';
 
 let channel: BroadcastChannel | null = null;
 const listeners: TimerSyncListener[] = [];
 let initialized = false;
+let currentRevision = 0;
 
 function handleStorage(e: StorageEvent) {
   if (e.key === STORAGE_KEY && e.newValue) {
@@ -30,12 +38,51 @@ function handleStorage(e: StorageEvent) {
 }
 
 function dispatch(msg: TimerSyncMessage) {
+  syncRevision(msg.revision);
   listeners.forEach((cb) => cb(msg));
+}
+
+export function getCurrentRevision() {
+  return currentRevision;
+}
+
+export function nextRevision(): number {
+  try {
+    const stored = localStorage.getItem(REVISION_KEY);
+    const rev = stored ? parseInt(stored, 10) : 0;
+    const next = rev + 1;
+    localStorage.setItem(REVISION_KEY, String(next));
+    currentRevision = next;
+    return next;
+  } catch {
+    currentRevision += 1;
+    return currentRevision;
+  }
+}
+
+export function syncRevision(revision: number) {
+  if (revision > currentRevision) {
+    currentRevision = revision;
+    try {
+      localStorage.setItem(REVISION_KEY, String(revision));
+    } catch {
+      // ignore
+    }
+  }
 }
 
 export function initTimerSync() {
   if (initialized) return;
   initialized = true;
+  try {
+    const stored = localStorage.getItem(REVISION_KEY);
+    if (stored) {
+      const rev = parseInt(stored, 10);
+      if (!isNaN(rev)) currentRevision = rev;
+    }
+  } catch {
+    // ignore
+  }
   if ('BroadcastChannel' in window) {
     channel = new BroadcastChannel(CHANNEL_NAME);
     channel.onmessage = (ev) => {
@@ -65,6 +112,7 @@ export function addTimerSyncListener(listener: TimerSyncListener): () => void {
 
 export function broadcastTimerMessage(msg: TimerSyncMessage) {
   if (!initialized) initTimerSync();
+  syncRevision(msg.revision);
   if (channel) {
     channel.postMessage(msg);
   } else {
@@ -76,3 +124,4 @@ export function broadcastTimerMessage(msg: TimerSyncMessage) {
     }
   }
 }
+

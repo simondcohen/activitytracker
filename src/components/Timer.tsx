@@ -6,7 +6,9 @@ import {
   initTimerSync,
   addTimerSyncListener,
   broadcastTimerMessage,
-  TimerSyncMessage
+  TimerSyncMessage,
+  nextRevision,
+  getCurrentRevision
 } from '../utils/timerSync';
 
 interface TimerProps {
@@ -40,14 +42,22 @@ export const Timer: React.FC<TimerProps> = ({
   const revisionRef = useRef(0);
   const lastMsgRef = useRef<{ revision: number; timestamp: number }>({ revision: 0, timestamp: 0 });
 
-  const sendMessage = (type: TimerSyncMessage['type'], payload: TimerSyncMessage['payload'] = {}) => {
+  useEffect(() => {
+    revisionRef.current = getCurrentRevision();
+  }, []);
+
+  const sendMessage = (
+    type: TimerSyncMessage['type'],
+    payload: TimerSyncMessage['payload'] = {}
+  ) => {
+    const rev = nextRevision();
+    revisionRef.current = rev;
     const msg: TimerSyncMessage = {
       type,
-      revision: revisionRef.current + 1,
+      revision: rev,
       timestamp: Date.now(),
       payload
     };
-    revisionRef.current += 1;
     lastMsgRef.current = { revision: msg.revision, timestamp: msg.timestamp };
     broadcastTimerMessage(msg);
   };
@@ -61,6 +71,7 @@ export const Timer: React.FC<TimerProps> = ({
       return;
     }
     lastMsgRef.current = { revision: msg.revision, timestamp: msg.timestamp };
+    revisionRef.current = msg.revision;
 
     switch (msg.type) {
       case 'timer-start':
