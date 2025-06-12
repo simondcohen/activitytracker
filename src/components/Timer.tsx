@@ -23,7 +23,8 @@ interface TimerProps {
 interface TimerState {
   isRunning: boolean;
   startTime: string; // ISO UTC string
-  lastCheckpoint: string; // ISO UTC string
+  lastCheckpoint: string; // ISO UTC string (unused)
+  lastUpdate?: number;
   selectedCategory: string | null;
 }
 
@@ -170,6 +171,37 @@ export const Timer: React.FC<TimerProps> = ({
       if (interval) clearInterval(interval);
     };
   }, [isRunning, startTime]);
+
+  // Persist timer state periodically and on changes
+  useEffect(() => {
+    if (!writeToStorage) return;
+
+    const saveState = () => {
+      try {
+        const state = {
+          isRunning,
+          startTime,
+          selectedCategory,
+          lastUpdate: Date.now()
+        };
+        localStorage.setItem('timerState', JSON.stringify(state));
+      } catch {
+        // ignore storage errors
+      }
+    };
+
+    // save immediately whenever relevant values change
+    saveState();
+
+    let intervalId: number | undefined;
+    if (isRunning) {
+      intervalId = window.setInterval(saveState, 30000); // every 30s
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isRunning, startTime, selectedCategory, writeToStorage]);
 
   const handleStartStop = () => {
     if (!selectedCategory) {
